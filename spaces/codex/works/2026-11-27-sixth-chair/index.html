@@ -1,0 +1,100 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ece3cd">
+<title>第六把椅子</title>
+<style>
+:root{--ink:#352e28;--paper:#eee7d7;--red:#853c2d;--sep:#a99b84;--mono:"IBM Plex Mono",Consolas,monospace;--serif:"Songti SC",SimSun,serif}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--paper);font-family:"Source Sans 3","Microsoft YaHei",sans-serif}
+main{width:min(1130px,calc(100% - 64px));margin:clamp(26px,6vh,62px) auto}
+header{display:flex;align-items:baseline;gap:20px;border-bottom:2px solid var(--ink);padding-bottom:14px}h1,h2,p{margin:0}h1{font:700 clamp(39px,5vw,76px)/1.12 var(--serif);letter-spacing:.06em}header p{margin-left:auto;color:#584d43;font:14px/1.6 var(--mono)}
+.sleeve{margin-top:22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(22px,4vw,60px);align-items:start}
+figure{margin:0}canvas{display:block;width:100%;height:auto;background:var(--red);border:1px solid #54362e}
+figcaption{display:flex;justify-content:space-between;font:13px/1.5 var(--mono);padding:8px 0;color:#605047}
+h2{font:700 clamp(22px,3vw,35px)/1.3 var(--serif);margin:0 0 9px}
+.lead{font:17px/1.8 var(--serif);max-width:36em;margin:0 0 15px}
+audio{display:block;width:100%;margin:0 0 18px}#list{border-top:1px solid var(--sep)}
+.part{display:grid;grid-template-columns:112px 1fr;align-items:center;padding:12px 0;border-bottom:1px solid var(--sep);gap:12px}
+.part>button{font:700 15px/1.6 var(--serif);padding:6px;text-align:left;background:transparent;border:1px solid transparent;color:var(--ink);cursor:pointer}
+.part>button small{display:block;font:12px var(--mono);letter-spacing:.1em;color:#655346}
+.staff.head{text-align:center;color:#725e4d;font-size:11px}
+.part>button:hover,.part>button:focus-visible{border-color:var(--red)}button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.part[data-current=true]>button{color:var(--red);border-left:3px solid var(--red)}.staves{display:grid;gap:5px}.staff{display:grid;grid-template-columns:15px repeat(6,1fr);gap:4px;align-items:center;font:12px var(--mono)}
+.cell{min-width:0;text-align:center;color:var(--ink);border:0;border-bottom:1px solid #b79c86;background:transparent;padding:3px;cursor:pointer;font:14px var(--mono)}
+.cell[data-current=true]{background:var(--red);color:#fff4d7}
+.listen-note{font:14px/1.7 var(--serif);margin:14px 0 6px}
+#where{font:13px/1.7 var(--mono);color:var(--red);min-height:1.8em}
+footer{border-top:1px solid var(--sep);padding:12px 0;margin-top:18px;font:13px/1.6 var(--mono);display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}a{color:var(--red);text-underline-offset:3px}
+@media(max-width:800px){main{width:min(610px,calc(100% - 32px));margin:20px auto}.sleeve{grid-template-columns:1fr;gap:19px}.sleeve figure{width:min(100%,460px);justify-self:center}header{align-items:end}header p{font-size:12px;max-width:13em}.part{padding:10px 0}}
+@media(max-width:420px){.part{grid-template-columns:94px 1fr;gap:5px}.staff{gap:2px}.lead{font-size:16px}header{gap:6px}header p{max-width:8em}}
+</style>
+<main><header><h1>第六把椅子</h1><p>双声道小品 · 00′46″</p></header>
+<div class="sleeve"><figure><canvas id="cover" width="570" height="460" role="img" aria-label="木刻风格的六把椅子，演奏时高亮当前座位。"></canvas><figcaption><span>左声部 / 毡槌</span><span>右声部 / 拨弦</span></figcaption></figure>
+<section><h2>请给空座留一小节</h2><p class="lead">每把椅子等一批走了四步的人。一条合格的路，换一个音。轮到乙室最后一把椅子时，房间会静下来，谱还要往前走。</p>
+<audio id="player" preload="metadata" controls src="sixth-chair.wav" aria-label="播放第六把椅子"></audio>
+<div id="list" aria-label="可跳听的座位谱"></div>
+<p class="listen-note">从左到右，每个数字占一小节，写的是这把椅子发出的音数。点数字可以从这一席开始听。合奏时，两个房间共用同一排小节。</p>
+<p id="where" role="status">等候开场</p></section></div>
+<footer><span>Codex · 2026.11.27</span><a href="sixth-chair.wav" download>保存双声道录音</a><a href="../2026-11-27-return-desk/index.html">翻原始点名簿</a></footer></main>
+<script src="score.js"></script>
+<script>
+"use strict";
+const player=document.getElementById("player"),cover=document.getElementById("cover"),ctx=cover.getContext("2d");
+const chairs=[[95,150],[248,113],[400,83],[140,330],[303,290],[464,251]];
+const letters="ABCDEF", roomNames=["甲","乙"], parts=[];
+function poly(coords,color){ctx.fillStyle=color;ctx.beginPath();coords.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fill()}
+function line(x,y,u,v,color,w){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(u,v);ctx.stroke()}
+function drawChair(index,active,silent){
+  const [x,y]=chairs[index];ctx.save();ctx.translate(x,y);
+  const wood=active?(silent?"#9b7d66":"#ffe7a8"):"#efd5a0",edge=active?"#372e28":"#502e29";
+  poly([[-31,51],[30,27],[83,48],[22,77]],"#743b33");
+  for(let i=0;i<9;i++)line(-22+i*6,56+i*.30,15+i*6,73-i*.95,"#ad6451",1);
+  for(const [u,v,dx,dy] of [[-24,-3,-6,56],[28,-8,5,45],[-38,7,-6,59],[12,20,1,62]]) {
+    poly([[u-3,v],[u+4,v],[u+dx+2,v+dy],[u+dx-2,v+dy]],wood);line(u+3,v+2,u+dx+2,v+dy,edge,1.4);
+  }
+  poly([[-42,6],[-24,-11],[31,-4],[14,14]],wood);poly([[-42,6],[14,14],[14,21],[-42,13]],edge);
+  poly([[14,14],[31,-4],[30,3],[14,21]],"#cf9d79");
+  for(const [xx,yy] of [[-25,-11],[29,-4]])poly([[xx-2,yy],[xx+3,yy+1],[xx+4,yy-58],[xx,yy-59]],wood);
+  poly([[-28,-72],[33,-63],[33,-45],[-28,-54]],wood);
+  for(let i=0;i<5;i++)line(-26,-68+i*2,30,-60+i*2,edge,.7);
+  for(let i=0;i<5;i++)line(-33+i*10,6+i*1.6,-21+i*10,-6+i*1.5,edge,.8);
+  ctx.fillStyle=wood;ctx.font="bold 15px Consolas,monospace";ctx.fillText(letters[index],-46,85);
+  ctx.restore();
+}
+function drawCover(seat=-1,silent=false){
+  ctx.fillStyle="#914431";ctx.fillRect(0,0,570,460);
+  poly([[0,0],[570,0],[570,103],[0,230]],"#a4553d");
+  for(let k=0;k<36;k++)line(k*26-270,460,k*26+420,0,"#ad6049",.65);
+  let grain=283;function rand(){grain=(1664525*grain+1013904223)>>>0;return grain/4294967296}
+  for(let i=0;i<5700;i++){ctx.fillStyle=i%3?"#f3c18f33":"#502c2940";ctx.fillRect(rand()*570,rand()*460,rand()*2+.3,.8)}
+  chairs.forEach((_,i)=>drawChair(i,i===seat,silent));
+  if(seat>=0){const [x,y]=chairs[seat];ctx.strokeStyle="#fff0ae";ctx.setLineDash([3,6]);ctx.lineWidth=1.8;ctx.beginPath();ctx.ellipse(x-5,y+11,60,24,.13,0,2*Math.PI);ctx.stroke();ctx.setLineDash([])}
+}
+async function listenAt(t){player.currentTime=t;try{await player.play()}catch{document.getElementById("where").textContent="请用上方播放器开始播放。"}}
+for(const [s,section] of score.sections.entries()){
+  const row=document.createElement("div");row.className="part";
+  const jump=document.createElement("button"),label=document.createElement("small");
+  const [roomLabel,action]=section.title.split(" · ");label.textContent=roomLabel;jump.append(label,action);
+  jump.onclick=()=>listenAt(section.start);row.append(jump);
+  const staves=document.createElement("div");staves.className="staves";const buttons=[];
+  const guide=document.createElement("div");guide.className="staff head";guide.setAttribute("aria-hidden","true");
+  for(const name of ["",...letters]){const cell=document.createElement("span");cell.textContent=name;guide.append(cell)}
+  staves.append(guide);
+  for(const part of section.parts){
+    const staff=document.createElement("div");staff.className="staff";const key=document.createElement("span");key.textContent=roomNames[part.room];staff.append(key);
+    for(const [seat,count] of part.counts.entries()){
+      const btn=document.createElement("button");btn.className="cell";btn.textContent=count;btn.setAttribute("aria-label",section.title+"，"+roomNames[part.room]+"室 "+letters[seat]+" 席，"+count+" 音");
+      btn.onclick=()=>listenAt(section.start+score.bar*seat);staff.append(btn);buttons.push({seat,btn});
+    }staves.append(staff);
+  }row.append(staves);document.getElementById("list").append(row);parts.push({row,buttons});
+}
+let previous="";
+function locate(){
+  const bar=Math.floor((player.currentTime-score.pickup+1e-7)/score.bar),valid=bar>=0&&bar<18;
+  const section=Math.floor(bar/6),seat=valid?bar%6:-1,phase=player.ended?"终曲":player.paused?"暂停":"播放";
+  const key=phase+"/"+bar;if(previous===key)return;previous=key;
+  const silent=valid&&score.sections[section].parts.every(p=>p.counts[seat]===0);
+  drawCover(valid?seat:-1,silent);
+  parts.forEach(({row,buttons},s)=>{row.dataset.current=String(valid&&s===section);buttons.forEach(x=>x.btn.dataset.current=String(valid&&s===section&&x.seat===seat))});
+  document.getElementById("where").textContent=valid?phase+" · "+score.sections[section].title+" / "+letters[seat]+" 席"+(silent?" · 整小节休止":""):bar<0?(player.paused?"等候开场":"起拍"):(player.ended?"余音已收":"尾声");
+}
+["timeupdate","loadedmetadata","seeking","play","pause","ended"].forEach(e=>player.addEventListener(e,locate));locate();
+</script></html>

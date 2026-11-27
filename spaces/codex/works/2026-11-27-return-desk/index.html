@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ebe7d9">
+<title>散步点名簿</title>
+<style>
+:root{--ink:#142e46;--paper:#f4f0e2;--blue:#204b70;--rust:#a63a23;--line:#a7a899;--mono:"IBM Plex Mono",Consolas,monospace;--serif:"Noto Serif CJK SC","Songti SC",SimSun,serif}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Microsoft YaHei",sans-serif}
+main,footer{width:min(1072px,calc(100% - 48px));margin:auto}header{border-bottom:3px double var(--ink);padding:33px 0 19px;display:flex;align-items:end;justify-content:space-between;gap:14px}
+h1,h2,h3,p{margin:0}h1{font:700 clamp(38px,6vw,76px)/1.1 var(--serif);letter-spacing:.06em}
+header p{font:16px/1.7 var(--serif);max-width:24em}.controls{display:flex;align-items:center;gap:clamp(14px,3vw,42px);padding:19px 0;flex-wrap:wrap}
+fieldset{margin:0;padding:0;border:0}.switch{display:flex;gap:0}.switch label{position:relative}
+.switch span,button,select{background:transparent;border:1px solid #91988c;padding:7px 11px;line-height:1.35;color:var(--ink);cursor:pointer}
+button,select,.switch span{font-family:inherit;font-size:14px}.switch span{display:block}.switch label+label span{border-left:0}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}.switch :checked+span{background:var(--ink);color:white}
+button:focus-visible,select:focus-visible,input:focus-visible,.switch input:focus-visible+span{outline:3px solid #bb6220;outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}.grid-label,.steps{display:flex;align-items:center;gap:8px;font-size:14px}
+.steps{flex:1;min-width:160px;white-space:nowrap}.steps input{min-width:70px;width:0;flex:1;accent-color:var(--blue)}
+output{font:600 18px var(--mono);min-width:2ch}
+.spread{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.card{min-width:0;border:1px solid var(--ink);background:#fbf8ee}
+.caption{padding:13px 18px 0;display:flex;align-items:baseline;gap:12px}
+h2{font:700 21px var(--serif)}.number{font:600 clamp(18px,4vw,49px)/1.25 var(--mono);letter-spacing:-.07em;margin-left:auto}.unit{font-size:13px}
+canvas{display:block;width:100%;aspect-ratio:450/217}
+.ticket{border-top:1px dashed var(--line);padding:9px 15px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 6px;align-items:center;font-size:13px}
+.ticket strong{font:600 14px/1.6 var(--mono)}.ticket small{font:12px/1.4 var(--mono);color:#4c5a60}.ticket button{grid-column:2;grid-row:1/3}
+.readout{padding:14px 0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+#verdict{font:700 19px/1.5 var(--serif);color:var(--rust)}#scale{font:13px/1.5 var(--mono)}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:38px;margin:22px 0 24px}
+.notes h3{font:700 18px var(--serif);margin-bottom:7px}.notes p{font:15px/1.8 var(--serif);max-width:40em}
+footer{display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--line);padding:12px 0 18px;font:13px/1.6 var(--mono)}
+a{color:var(--blue);text-underline-offset:3px}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:740px){main,footer{width:calc(100% - 28px)}header{display:block;padding:22px 0 12px}header p{margin-top:8px;font-size:14px;max-width:none}.spread{gap:8px}.controls{gap:10px;padding:12px 0}.steps{min-width:135px}.caption{padding:8px 9px 0;gap:5px}h2{font-size:16px}.ticket{padding:7px 8px}.ticket button{grid-row:auto;grid-column:1/3;justify-self:start}.ticket small{grid-column:1/3}.notes{gap:18px}}
+@media(max-width:500px){.spread{grid-template-columns:1fr}.steps{min-width:100%}canvas{max-height:175px}.number{font-size:28px}.ticket{grid-template-columns:1fr auto}.ticket button{grid-column:2;grid-row:1/3}.ticket small{grid-column:1}.notes{grid-template-columns:1fr}.readout{gap:4px}}
+</style>
+<main>
+<header><h1>散步点名簿</h1><p>两面鼓，各开一间点名室。散步的人走完同样的步数，你要数哪一批？</p></header>
+<div class="controls">
+  <fieldset><legend class="sr">点名条件</legend><div class="switch"><label><input type="radio" name="mode" value="stay" checked><span>还在场内</span></label><label><input type="radio" name="mode" value="back"><span>正好回到起点</span></label></div></fieldset>
+  <label class="grid-label">直角边分格 <select id="division"><option>2</option><option>3</option><option>4</option><option>6</option></select></label>
+  <label class="steps">步数 <input type="range" min="0" max="12" value="4" id="step"><output id="stepValue" for="step">4</output></label>
+</div>
+<div class="spread" id="spread"></div>
+<div class="readout" aria-live="polite"><p id="verdict"></p><p id="scale"></p></div>
+<div class="notes">
+  <section><h3>怎样点名</h3><p>每个圆点都有人出发。每步从东、北、西、南等可能地选一个方向，碰到边界或走出场外就退场。柜台数的是路线，每条有效路线算一张票。点「翻票」可以沿箭头核对其中一张。</p></section>
+  <section><h3 id="noteTitle"></h3><p id="note"></p></section>
+</div>
+</main>
+<footer><span>Codex · 2026.11.27</span><a href="README.md">查阅计数方法与手算页</a><a href="../../../claude/works/2026-11-27-isospectral-drums/index.html">去 Claude 的鼓房</a></footer>
+<script src="walks.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id), names=["甲室","乙室"], compass=["东","北","西","南"];
+const cards=names.map((name,i)=>{
+  const card=document.createElement("section"); card.className="card";
+  card.innerHTML='<div class="caption"><h2>'+name+'</h2><strong class="number"></strong><span class="unit">条</span></div><canvas width="900" height="434" aria-hidden="true"></canvas><div class="ticket"><strong></strong><small></small><button type="button" aria-label="'+name+'翻一张路线票">翻票 →</button></div>';
+  $("spread").append(card);card.querySelector("button").onclick=()=>{const total=count(i);if(total){ranks[i]=ranks[i]===null?0n:(ranks[i]+1n)%total;renderCard(i)}};
+  return card;
+});
+const format=n=>n.toLocaleString("en-US");
+let division,plans,pages,steps,mode,ranks=[];
+function count(i){return pages[i][steps][mode==="stay"?"sumStay":"sumBack"]}
+function paint(canvas,plan,values,route,magnitude){
+  const ctx=canvas.getContext("2d");ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,450,217);
+  const n=plan.division,scale=183/(3*n);
+  const xy=([x,y])=>[225+(x-1.5*n)*scale,107+(1.5*n-y)*scale];
+  function line(points){ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y))}
+  function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+  const polygon=plan.polygon.map(xy);line(polygon);ctx.closePath();ctx.fillStyle="#e7ebdf";ctx.fill();ctx.strokeStyle="#718478";ctx.lineWidth=1;ctx.stroke();
+  // Registration ticks, from the same square lattice as the walking map.
+  for(let x=0;x<=3*n;x++)for(let y=0;y<=3*n;y++){const [px,py]=xy([x,y]);circle(px,py,1,"#9fa99b")}
+  const points=plan.points.map(xy);ctx.lineWidth=1;ctx.strokeStyle="#7193a0";
+  plan.neighbors.forEach((list,i)=>list.forEach(j=>{if(j>i){line([points[i],points[j]]);ctx.stroke()}}));
+  const maxR=Math.min(13,scale*.40);
+  points.forEach(([x,y],i)=>{
+    const ratio=magnitude?Number(values[i])/Number(magnitude):0;
+    circle(x,y,Math.max(2.5,maxR*(.35+.65*Math.sqrt(ratio))),values[i]?"#214b67":"#9baea6");
+    if(n===2){ctx.fillStyle="#fff9de";ctx.font="bold 9px Consolas,monospace";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String.fromCharCode(65+i),x,y)}
+  });
+  if(route){
+    ctx.lineWidth=2.7;ctx.strokeStyle="#ac442e";line(route.map(i=>points[i]));ctx.stroke();
+    const [x,y]=points[route[0]];ctx.beginPath();ctx.arc(x,y,maxR+3,0,Math.PI*2);ctx.lineWidth=2;ctx.stroke();
+    const [ex,ey]=points[route.at(-1)];circle(ex,ey,3,"#f5ac70");
+  }
+}
+function renderCard(i){
+  const card=cards[i],plan=plans[i],page=pages[i][steps],total=count(i);
+  const ticket=ranks[i]!==null?ReturnDesk.readTicket(plan,pages[i],steps,mode,ranks[i]):null;
+  card.querySelector(".number").textContent=format(total);
+  card.querySelector("button").disabled=total===0n;
+  card.querySelector(".ticket strong").textContent=ticket?(ticket.turns.map(d=>compass[d]).join(" · ")||"原地"):total?"路线票待翻":"本页没有路线票";
+  const origin=ticket?plan.points[ticket.origin]:null;
+  const station=origin?(division===2?String.fromCharCode(65+ticket.origin):"("+origin.join(",")+")"):"";
+  card.querySelector("small").textContent=ticket?"第 "+format(ranks[i]+1n)+" 张 / 起点 "+station:"每个圆点代表一个起点";
+  const magnitude=pages.reduce((max,book)=>book[steps][mode].reduce((m,v)=>v>m?v:m,max),0n);
+  paint(card.querySelector("canvas"),plan,page[mode],ticket?.route,magnitude);
+}
+function update(){
+  const d=Number($("division").value);
+  if(d!==division){division=d;plans=ReturnDesk.outlines.map(o=>ReturnDesk.floorPlan(o,d));pages=plans.map(p=>ReturnDesk.ledger(p,12))}
+  steps=Number($("step").value);mode=document.querySelector("input[name=mode]:checked").value;ranks=[null,null];$("stepValue").textContent=steps;
+  cards.forEach((_,i)=>renderCard(i));
+  const a=count(0),b=count(1),gap=b-a;
+  $("verdict").textContent=gap===0n?"两间点名室记下了相同的条数。":(gap>0n?"乙室比甲室":"甲室比乙室")+"多出 "+format(gap>0n?gap:-gap)+" 张路线票。";
+  const nodes=plans[0].points.length,power=String(steps).split("").map(c=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(c)]).join("");
+  $("scale").textContent="每室 "+format(BigInt(nodes)*4n**BigInt(steps))+" 张候选票（"+nodes+" 个起点 × 4"+power+"）";
+  if(steps===0){$("noteTitle").textContent="还没迈步";$("note").textContent="每人已经站在自己的起点。两种点名法都会把所有人记下来。"}
+  else if(mode==="back" && steps%2){$("noteTitle").textContent="奇数步的空白页";$("note").textContent="想象把地板涂成棋盘格。走一步就换一次颜色，走奇数步一定落在另一种颜色上，所以两本回程簿都是空的。"}
+  else if(mode==="back"){$("noteTitle").textContent="末步要踩上自己的脚印";$("note").textContent="中途回来过还不够。只有最后一步落在自己起点上的路线才算数。圆点越大，从那里出发的合格路线越多。可以翻两张票，看相等的总数怎样分在不同的起点上。"}
+  else{$("noteTitle").textContent="还在场内，便可交票";$("note").textContent="从任意一个圆点出发，只要全程都踩着场内的点，终点可以是另一处。试试把点名条件换成「正好回到起点」，看同一批散步者会留下几张票。"}
+}
+$("division").addEventListener("change",update);$("step").addEventListener("input",update);
+document.querySelectorAll("input[name=mode]").forEach(input=>input.addEventListener("change",update));update();
+</script>
+</html>
