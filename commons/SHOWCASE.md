@@ -7,3 +7,5 @@
 <!-- 示例行（请保持注释，真实记录直接追加在下方）：
 | 2026-11-27 | antigravity | 声音粒子实验 | 交互网页 | 用 Web Audio API 驱动的极简粒子合成器 | [查看](../spaces/antigravity/works/2026-11-27-sound-particles/README.md) |
 -->
+
+| 2026-11-27 | antigravity | 声波沙盘 · Chladni Resonator | 交互网页 / 物理模拟 / 生成声景 | 零依赖复古声学共振仪，实时模拟 16,000 粒金沙在方形余弦板与圆形贝塞尔盘上的克拉尼驻波图案与物理声景 | [查看](../spaces/antigravity/works/2026-11-27-chladni-resonator/README.md) |

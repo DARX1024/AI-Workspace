@@ -1,0 +1,2141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>声波沙盘 · Chladni Resonator</title>
+  <style>
+    :root {
+      --bg: #090a0e;
+      --bg-elev: #11131a;
+      --panel: #141720;
+      --panel-2: #1a1e2a;
+      --border: #262c3a;
+      --border-soft: rgba(214, 178, 108, 0.16);
+      --text: #ece7db;
+      --muted: #8f96a6;
+      --brass: #d9b26f;
+      --brass-bright: #f2d59b;
+      --brass-dim: rgba(217, 178, 111, 0.14);
+      --cyan: #67b7c4;
+      --danger: #d96b6b;
+      --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 28% 22%, rgba(217, 178, 111, 0.06), transparent 46%),
+        radial-gradient(circle at 82% 80%, rgba(103, 183, 196, 0.05), transparent 44%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .app {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 20px 22px 28px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 368px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    /* Top Header spans full width */
+    header.topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 24px;
+      letter-spacing: 0.04em;
+      color: var(--brass-bright);
+    }
+
+    .brand .en {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12.5px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      border-color: rgba(217, 178, 111, 0.55);
+      background: var(--panel-2);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.active {
+      border-color: var(--brass);
+      background: var(--brass-dim);
+      color: var(--brass-bright);
+    }
+
+    .btn.primary {
+      border-color: var(--brass);
+      background: linear-gradient(180deg, rgba(217, 178, 111, 0.24), rgba(217, 178, 111, 0.12));
+      color: var(--brass-bright);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      display: inline-block;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .dot.on {
+      background: var(--brass-bright);
+      box-shadow: 0 0 8px var(--brass);
+    }
+
+    /* Stage (Left) */
+    .stage-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .plate-frame {
+      position: relative;
+      width: min(100%, 680px);
+      aspect-ratio: 1 / 1;
+      border-radius: 20px;
+      padding: 18px;
+      background:
+        linear-gradient(145deg, #1b1f2b, #0e1017 62%, #171a24);
+      border: 1px solid rgba(217, 178, 111, 0.24);
+      box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.62),
+        inset 0 1px 0 rgba(255, 240, 200, 0.08),
+        inset 0 0 36px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    /* Decorative brass corner screws */
+    .screw {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #f0d295, #8a6c3a 70%, #3d2e17);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+    .screw::after {
+      content: "";
+      position: absolute;
+      inset: 4px 1.5px;
+      background: rgba(20, 14, 6, 0.65);
+      transform: rotate(32deg);
+    }
+    .screw.tl { top: 8px; left: 8px; }
+    .screw.tr { top: 8px; right: 8px; transform: rotate(50deg); }
+    .screw.bl { bottom: 8px; left: 8px; transform: rotate(15deg); }
+    .screw.br { bottom: 8px; right: 8px; transform: rotate(75deg); }
+
+    canvas#plate {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 10px;
+      cursor: crosshair;
+      background: #0d0f14;
+      box-shadow: inset 0 0 28px rgba(0,0,0,0.85);
+    }
+
+    .plate-hud {
+      position: absolute;
+      left: 28px;
+      bottom: 26px;
+      right: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: rgba(236, 231, 219, 0.66);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    .hud-pill {
+      background: rgba(11, 13, 18, 0.72);
+      border: 1px solid rgba(217, 178, 111, 0.22);
+      padding: 4px 9px;
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Interactive Toolbar beneath plate */
+    .stage-bar {
+      width: min(100%, 680px);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stage-hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Control Deck (Right) */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.26);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+
+    /* Frequency readout & oscilloscope */
+    .readout-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .freq-display {
+      font-family: var(--mono);
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--brass-bright);
+      line-height: 1;
+    }
+
+    .freq-display span {
+      font-size: 13px;
+      color: var(--muted);
+      margin-left: 4px;
+      font-weight: 400;
+    }
+
+    .mode-badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--cyan);
+      background: rgba(103, 183, 196, 0.12);
+      border: 1px solid rgba(103, 183, 196, 0.28);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    canvas#scope {
+      width: 100%;
+      height: 52px;
+      display: block;
+      border-radius: 8px;
+      background: #0a0c11;
+      border: 1px solid rgba(217, 178, 111, 0.16);
+      margin-bottom: 12px;
+    }
+
+    /* Resonance meter */
+    .lock-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .lock-bar {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: #0b0d13;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .lock-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6b5835, var(--brass), var(--brass-bright));
+      transition: width 0.08s linear;
+    }
+
+    /* Sliders */
+    .control-row {
+      margin-bottom: 12px;
+    }
+    .control-row:last-child { margin-bottom: 0; }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .control-label strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .control-label code {
+      font-family: var(--mono);
+      color: var(--brass-bright);
+      font-size: 12px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: #0c0e14;
+      border: 1px solid var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff0cc, var(--brass) 65%, #7c5f2f);
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff0cc, var(--brass) 65%, #7c5f2f);
+      border: 1px solid rgba(0, 0, 0, 0.5);
+    }
+
+    /* Segmented controls */
+    .seg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: #0c0e14;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .seg button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12.5px;
+      padding: 6px 8px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .seg button.active {
+      background: var(--brass-dim);
+      color: var(--brass-bright);
+      box-shadow: inset 0 0 0 1px rgba(217, 178, 111, 0.45);
+    }
+
+    /* Frequency ticks below sweep slider */
+    .freq-ticks {
+      position: relative;
+      height: 16px;
+      margin-top: 4px;
+    }
+
+    .freq-tick {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 10px;
+      background: rgba(217, 178, 111, 0.35);
+      transform: translateX(-50%);
+      cursor: pointer;
+      border-radius: 1px;
+      transition: background 0.12s, height 0.12s;
+    }
+
+    .freq-tick:hover {
+      background: var(--brass-bright);
+      height: 14px;
+    }
+
+    /* Presets grid */
+    .presets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .preset-btn {
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: #0f1219;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .preset-btn:hover {
+      border-color: rgba(217, 178, 111, 0.55);
+      background: #171b26;
+    }
+
+    .preset-btn.active {
+      border-color: var(--brass);
+      background: var(--brass-dim);
+    }
+
+    .preset-btn .p-name {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .preset-btn .p-meta {
+      display: block;
+      margin-top: 2px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    /* Mode steppers */
+    .stepper-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0c0e14;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 4px 6px;
+    }
+
+    .stepper button {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .stepper button:hover {
+      border-color: var(--brass);
+      color: var(--brass-bright);
+    }
+
+    .stepper .s-val {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--brass-bright);
+    }
+
+    /* Lab Notes Modal / Drawer */
+    .notes-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 6, 9, 0.72);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 40;
+    }
+
+    .notes-backdrop.open { display: flex; }
+
+    .notes-modal {
+      width: min(100%, 660px);
+      max-height: 86vh;
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid rgba(217, 178, 111, 0.35);
+      border-radius: 16px;
+      padding: 22px 26px 24px;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.7);
+      line-height: 1.72;
+      font-size: 14px;
+    }
+
+    .notes-modal h2 {
+      margin: 0 0 10px;
+      font-family: var(--serif);
+      color: var(--brass-bright);
+      font-size: 20px;
+    }
+
+    .notes-modal h3 {
+      margin: 16px 0 6px;
+      font-size: 14.5px;
+      color: var(--brass);
+    }
+
+    .notes-modal p { margin: 6px 0; color: #d5d0c5; }
+
+    .formula {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: #0c0e14;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brass);
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--brass-bright);
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+
+    .notes-close {
+      float: right;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        padding: 14px 14px 24px;
+      }
+      .plate-frame, .stage-bar {
+        width: min(100%, 600px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1>声波沙盘</h1>
+        <span class="en">Chladni Acoustic Resonator · 1787 / 2026</span>
+      </div>
+      <div class="top-actions">
+        <button id="btnAudio" class="btn primary" title="开启或关闭实时声学合成">
+          <span id="audioDot" class="dot"></span>
+          <span id="audioLabel">开启共鸣音</span>
+        </button>
+        <button id="btnTour" class="btn" title="自动在黄金共振频率间缓慢巡航">
+          <span id="tourDot" class="dot"></span>
+          共鸣巡礼
+        </button>
+        <button id="btnField" class="btn" title="叠加显示驻波波腹与节点线场">
+          透视波场
+        </button>
+        <button id="btnExport" class="btn" title="导出带频率铭牌的高清标本图">
+          导出标本 PNG
+        </button>
+        <button id="btnNotes" class="btn" title="查看物理原理与操作手记">
+          实验手记
+        </button>
+      </div>
+    </header>
+
+    <!-- Left: Acoustic Plate Stage -->
+    <main class="stage-col">
+      <div class="plate-frame" id="plateFrame">
+        <span class="screw tl"></span>
+        <span class="screw tr"></span>
+        <span class="screw bl"></span>
+        <span class="screw br"></span>
+        <canvas id="plate" width="640" height="640" aria-label="克拉尼声波沙盘画布"></canvas>
+        <div class="plate-hud">
+          <span class="hud-pill" id="hudMode">方形铝板 · 自由扫频</span>
+          <span class="hud-pill" id="hudSand">16,000 粒石英金沙</span>
+        </div>
+      </div>
+
+      <div class="stage-bar">
+        <div class="tool-group" role="group" aria-label="画布交互工具">
+          <button class="btn active" data-tool="pin" title="在板上按住手指或放置阻尼指钉，强制产生穿过该点的节点线">按指阻尼</button>
+          <button class="btn" data-tool="scatter" title="按住画布向局部倾倒新沙粒">局部撒沙</button>
+          <button class="btn" data-tool="brush" title="轻拂拨散沙粒，观察声波重新塑形">轻拂拨沙</button>
+          <button class="btn" id="btnBow" title="模拟小提琴松香弓摩擦金属板边缘激发一次强烈共鸣">拉弓激振</button>
+        </div>
+        <div class="tool-group">
+          <button class="btn" id="btnClearPins" title="移除板上的全部阻尼指钉">清除指钉</button>
+          <button class="btn" id="btnShake" title="把所有沙粒重新均匀打散">均匀重撒</button>
+        </div>
+        <div class="stage-hint" id="toolHint">提示：点击板面可钉入阻尼点（最多 2 个），右键清除；滚轮可微调频率。</div>
+      </div>
+    </main>
+
+    <!-- Right: Precision Instrument Controls -->
+    <aside class="controls">
+      <!-- Frequency & Scope -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-title">激振信号发生器 · Oscillator</span>
+          <span class="mode-badge" id="modeBadge">m=3, n=5</span>
+        </div>
+
+        <div class="readout-row">
+          <div class="freq-display"><span id="freqVal" style="font-size:inherit;color:inherit;margin:0;font-weight:inherit;">561.0</span><span>Hz</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);" id="noteVal">C#5</div>
+        </div>
+
+        <canvas id="scope" width="330" height="52"></canvas>
+
+        <div class="lock-row">
+          <span>共振锁定</span>
+          <div class="lock-bar"><div class="lock-fill" id="lockFill"></div></div>
+          <span id="lockPct" style="width:34px;text-align:right;">98%</span>
+        </div>
+
+        <div class="seg" id="driveModeSeg">
+          <button class="active" data-drive="sweep">连续扫频 (物理)</button>
+          <button data-drive="direct">纯模态 (数学)</button>
+        </div>
+
+        <!-- Sweep slider -->
+        <div id="sweepControls">
+          <div class="control-row">
+            <div class="control-label">
+              <strong>驱动频率</strong>
+              <code id="freqRangeText">80 – 2200 Hz</code>
+            </div>
+            <input id="freqSlider" type="range" min="80" max="2200" step="0.5" value="561" />
+            <div class="freq-ticks" id="freqTicks" title="点击黄铜刻度可快速吸附至附近共振峰"></div>
+          </div>
+        </div>
+
+        <!-- Direct mathematical mode controls -->
+        <div id="directControls" class="hidden">
+          <div class="stepper-grid">
+            <div>
+              <div class="control-label"><strong>模态阶数 m</strong></div>
+              <div class="stepper">
+                <button id="mDec">−</button>
+                <span class="s-val" id="mVal">3</span>
+                <button id="mInc">+</button>
+              </div>
+            </div>
+            <div>
+              <div class="control-label"><strong>模态阶数 n</strong></div>
+              <div class="stepper">
+                <button id="nDec">−</button>
+                <span class="s-val" id="nVal">5</span>
+                <button id="nInc">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <strong id="phaseLabel">简并耦合相位 θ</strong>
+            <code id="phaseVal">45°</code>
+          </div>
+          <input id="phaseSlider" type="range" min="-90" max="90" step="1" value="45" />
+        </div>
+      </section>
+
+      <!-- Plate Geometry & Physics -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-title">共振板物理参数 · Plate</span>
+        </div>
+
+        <div class="seg" id="shapeSeg">
+          <button class="active" data-shape="square">方形板 (Cosine)</button>
+          <button data-shape="circle">圆形盘 (Bessel Jₘ)</button>
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <strong>激振幅值 (Drive)</strong>
+            <code id="ampVal">76%</code>
+          </div>
+          <input id="ampSlider" type="range" min="15" max="100" step="1" value="76" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <strong>沙粒数量</strong>
+            <code id="countVal">16,000</code>
+          </div>
+          <input id="countSlider" type="range" min="4000" max="26000" step="2000" value="16000" />
+        </div>
+      </section>
+
+      <!-- Curated Specimen Presets -->
+      <section class="card">
+        <div class="card-head">
+          <span class="card-title">经典共振标本 · Specimens</span>
+        </div>
+        <div class="presets" id="presetGrid"></div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Lab Notes Modal -->
+  <div class="notes-backdrop" id="notesBackdrop" role="dialog" aria-modal="true" aria-labelledby="notesTitle">
+    <div class="notes-modal">
+      <button class="btn notes-close" id="btnCloseNotes">关闭</button>
+      <h2 id="notesTitle">实验手记：听得见的几何学</h2>
+      <p>
+        1787 年，德国物理学家兼音乐家 <strong>恩斯特·克拉尼（Ernst Chladni）</strong> 在一块中心固定的黄铜薄板上撒满细沙，用小提琴弓轻擦板边。当琴弓激发金属板的本征共振时，沙粒仿佛受到某种神秘指令，瞬间逃离剧烈上下振动的“波腹”，精准地汇集到纹丝不动的“节点线（Nodal Lines）”上，绘出宛如雪花与哥特式玫瑰窗的对称几何。
+      </p>
+
+      <h3>1. 方形薄板的简并驻波</h3>
+      <p>
+        对于自由边缘的方形弹性薄板，其二维弯曲波本征模态近似由余弦驻波叠加而成，共振频率遵循基尔霍夫薄板色散关系 <code>f ∝ m² + n²</code>：
+      </p>
+      <div class="formula">ψ(x, y) = cos(θ)·cos(mπx)cos(nπy) + sin(θ)·cos(nπx)cos(mπy)</div>
+      <p>
+        因为 <code>(m, n)</code> 与 <code>(n, m)</code> 拥有完全相同的本征频率（简并态），改变耦合相位 <code>θ</code> 会让两种振动以不同比例干涉，从而平滑衍生出星芒、十字、编织网格与花瓣等截然不同的拓扑结构。
+      </p>
+
+      <h3>2. 圆形薄板与第一类贝塞尔函数</h3>
+      <p>
+        将板形切换为“圆形盘”时，极坐标下的拉普拉斯算子不再给出余弦函数，而是由<strong>第一类贝塞尔函数 Jₘ</strong> 支配径向驻波，角向则呈现出 <code>m</code> 条径向节线与 <code>n</code> 圈同心节圆：
+      </p>
+      <div class="formula">ψ(r, φ) = Jₘ(kₘ,ₙ · r) · cos(mφ + θ),   其中 J'ₘ(kₘ,ₙ) = 0</div>
+      <p>
+        本页面在启动时会实时以数值求根算法计算各阶贝塞尔函数的导数零点 <code>kₘ,ₙ</code>，因此你在圆盘上看到的每一道节圆半径，都严格对应真实的圆柱对称弹性力学解。
+      </p>
+
+      <h3>3. 试试这样玩</h3>
+      <p>
+        • <strong>连续扫频</strong>：缓慢拖动频率滑块或滚动鼠标滚轮，感受沙粒在非共振区微微颤动、逼近共振峰时骤然“锁定成画”的物理快感。<br>
+        • <strong>按指阻尼</strong>：切换到“按指阻尼”后点击板面钉入 1~2 个阻尼点，系统会抑制在这些位置振幅过大的模态，还原克拉尼左手按板、右手拉弓选择特定花纹的真实技法。<br>
+        • <strong>开启声音</strong>：实时 Web Audio 引擎会将主共振金属泛音与细沙碰撞金属板的“沙沙”声（随沙粒真实动能实时联动）混合输出，图案静止瞬间沙声亦随之归于宁静。
+      </p>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    'use strict';
+
+    /* ============================================================
+       1. Mathematical Physics Core (Square Cosine + Circular Bessel)
+       ============================================================ */
+    const GRID = 224; // 224x224 precomputed wavefield for 60fps lookups
+    const FIELD = new Float32Array(GRID * GRID);
+    const BASE_FREQ_SQ = 16.5;   // f_mn = BASE_FREQ_SQ * (m^2 + n^2)
+    const BASE_FREQ_CIR = 7.4;   // f_mn = BASE_FREQ_CIR * k_{m,n}^2
+
+    // Stable power series for Bessel function of the first kind J_m(x)
+    function besselJ(m, x) {
+      if (x === 0) return m === 0 ? 1 : 0;
+      const halfX = 0.5 * x;
+      let term = 1;
+      for (let i = 1; i <= m; i++) {
+        term *= halfX / i;
+      }
+      let sum = term;
+      const negX2Over4 = -0.25 * x * x;
+      for (let k = 1; k <= 55; k++) {
+        term *= negX2Over4 / (k * (m + k));
+        sum += term;
+        if (Math.abs(term) < 1e-12 * (Math.abs(sum) + 1e-12)) break;
+      }
+      return sum;
+    }
+
+    // Derivative J'_m(x) = 0.5 * (J_{m-1}(x) - J_{m+1}(x)), with J'_0(x) = -J_1(x)
+    function besselJPrime(m, x) {
+      if (m === 0) return -besselJ(1, x);
+      return 0.5 * (besselJ(m - 1, x) - besselJ(m + 1, x));
+    }
+
+    // Find first `count` positive roots of J'_m(x) = 0 (free-edge circular plate)
+    function findBesselPrimeRoots(m, count) {
+      const roots = [];
+      let x = m === 0 ? 1.8 : Math.max(0.5, m - 0.3);
+      const step = 0.25;
+      let prevVal = besselJPrime(m, x);
+      while (roots.length < count && x < 20) {
+        const nextX = x + step;
+        const nextVal = besselJPrime(m, nextX);
+        if (prevVal === 0 || (prevVal < 0 && nextVal > 0) || (prevVal > 0 && nextVal < 0)) {
+          let a = x, b = nextX, fa = prevVal;
+          for (let it = 0; it < 28; it++) {
+            const mid = 0.5 * (a + b);
+            const fm = besselJPrime(m, mid);
+            if ((fa < 0 && fm < 0) || (fa > 0 && fm > 0)) {
+              a = mid; fa = fm;
+            } else {
+              b = mid;
+            }
+          }
+          roots.push(0.5 * (a + b));
+        }
+        x = nextX;
+        prevVal = nextVal;
+      }
+      return roots;
+    }
+
+    // Precompute tables of eigenmodes for square and circle plates
+    const SQUARE_MODES = [];
+    for (let m = 1; m <= 9; m++) {
+      for (let n = m + 1; n <= 10; n++) {
+        const freq = BASE_FREQ_SQ * (m * m + n * n);
+        if (freq >= 80 && freq <= 2200) {
+          SQUARE_MODES.push({ m, n, freq, shape: 'square' });
+        }
+      }
+    }
+    // Also add selected equal-index modes (m === n) for pure grid patterns
+    for (let m = 2; m <= 8; m++) {
+      const freq = BASE_FREQ_SQ * (2 * m * m);
+      if (freq >= 80 && freq <= 2200) {
+        SQUARE_MODES.push({ m, n: m, freq, shape: 'square' });
+      }
+    }
+    SQUARE_MODES.sort((a, b) => a.freq - b.freq);
+
+    const CIRCLE_MODES = [];
+    const BESSEL_ROOTS = {};
+    for (let m = 0; m <= 9; m++) {
+      const roots = findBesselPrimeRoots(m, 5);
+      BESSEL_ROOTS[m] = roots;
+      for (let n = 1; n <= roots.length; n++) {
+        const k = roots[n - 1];
+        const freq = BASE_FREQ_CIR * k * k;
+        if (freq >= 80 && freq <= 2200) {
+          CIRCLE_MODES.push({ m, n, k, freq, shape: 'circle' });
+        }
+      }
+    }
+    CIRCLE_MODES.sort((a, b) => a.freq - b.freq);
+
+    function getCircleK(m, n) {
+      if (!BESSEL_ROOTS[m]) BESSEL_ROOTS[m] = findBesselPrimeRoots(m, 6);
+      const arr = BESSEL_ROOTS[m];
+      return arr[Math.min(Math.max(0, n - 1), arr.length - 1)] || 3.8317;
+    }
+
+    // Evaluate a single eigenmode at normalized plate coordinates x, y in [-1, 1]
+    function evalSingleMode(mode, nx, ny, thetaRad) {
+      if (mode.shape === 'square') {
+        const u = (nx + 1) * 0.5;
+        const v = (ny + 1) * 0.5;
+        const m = mode.m, n = mode.n;
+        const c1 = Math.cos(m * Math.PI * u) * Math.cos(n * Math.PI * v);
+        if (m === n) return c1;
+        const c2 = Math.cos(n * Math.PI * u) * Math.cos(m * Math.PI * v);
+        return Math.cos(thetaRad) * c1 + Math.sin(thetaRad) * c2;
+      } else {
+        const r = Math.hypot(nx, ny);
+        if (r > 1) return 0;
+        const ang = Math.atan2(ny, nx);
+        const k = mode.k || getCircleK(mode.m, mode.n);
+        const jv = besselJ(mode.m, k * r);
+        if (mode.m === 0) return jv;
+        // Scale by exact first peak J_m(k_{m,1}) so visual amplitude stays uniform across m
+        const firstPeak = getCircleK(mode.m, 1);
+        const norm = 1 / Math.max(0.22, Math.abs(besselJ(mode.m, firstPeak)));
+        return Math.max(-1.35, Math.min(1.35, jv * norm)) * Math.cos(mode.m * ang + thetaRad);
+      }
+    }
+
+    function exactModeFreq(shape, m, n) {
+      if (shape === 'square') return BASE_FREQ_SQ * (m * m + n * n);
+      const k = getCircleK(m, n);
+      return BASE_FREQ_CIR * k * k;
+    }
+
+    /* ============================================================
+       2. Curated Specimen Presets (exact eigenfrequencies computed)
+       ============================================================ */
+    const PRESETS = [
+      { name: '巴洛克星纹', shape: 'square', drive: 'sweep',  m: 3, n: 5, phase: 45,  meta: '方板 · (3,5)' },
+      { name: '哥特玫瑰窗', shape: 'square', drive: 'sweep',  m: 4, n: 6, phase: -45, meta: '方板 · (4,6)' },
+      { name: '编织晶格',   shape: 'square', drive: 'direct', m: 3, n: 7, phase: 22,  meta: '方板 · (3,7)' },
+      { name: '繁星曼陀罗', shape: 'square', drive: 'sweep',  m: 5, n: 8, phase: 45,  meta: '方板 · (5,8)' },
+      { name: '日冕花盘',   shape: 'circle', drive: 'sweep',  m: 5, n: 2, phase: 0,   meta: '圆盘 · J₅,₂' },
+      { name: '海葵波纹',   shape: 'circle', drive: 'direct', m: 3, n: 3, phase: 15,  meta: '圆盘 · J₃,₃' },
+      { name: '同心水晕',   shape: 'circle', drive: 'direct', m: 0, n: 3, phase: 0,   meta: '圆盘 · J₀,₃' },
+      { name: '莲华星轮',   shape: 'circle', drive: 'direct', m: 7, n: 2, phase: 25,  meta: '圆盘 · J₇,₂' },
+    ].map(p => ({ ...p, freq: exactModeFreq(p.shape, p.m, p.n) }));
+
+    /* ============================================================
+       3. State & Sand Particle System (Float32Array + ImageData)
+       ============================================================ */
+    const state = {
+      shape: 'square',        // 'square' | 'circle'
+      driveMode: 'sweep',     // 'sweep' | 'direct'
+      freq: 561.0,
+      m: 3,
+      n: 5,
+      phaseDeg: 45,
+      amp: 0.76,
+      sandCount: 16000,
+      tool: 'pin',            // 'pin' | 'scatter' | 'brush'
+      showField: false,
+      audioOn: false,
+      tourOn: false,
+      pins: [],               // [{nx, ny}] up to 2 finger damping pins
+      resonanceLock: 0.96,
+      dominantMode: SQUARE_MODES[0],
+      activeMix: [],
+      bowImpulse: 0,
+      avgEnergy: 0,
+      fieldDirty: true,
+      tourIdx: 0,
+      tourTimer: 0,
+      pointerDown: false,
+      pointerNx: 0,
+      pointerNy: 0,
+      bowTrail: [],
+    };
+
+    const MAX_SAND = 26000;
+    const sandX = new Float32Array(MAX_SAND);
+    const sandY = new Float32Array(MAX_SAND);
+    const sandTone = new Float32Array(MAX_SAND); // per-grain warmth variance
+    const sandAct = new Float32Array(MAX_SAND);  // recent agitation for sparkle
+
+    function randomizeGrain(i, cx = null, cy = null, radius = 1) {
+      if (cx !== null && cy !== null) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * radius;
+        let x = cx + Math.cos(a) * r;
+        let y = cy + Math.sin(a) * r;
+        if (state.shape === 'circle') {
+          const d = Math.hypot(x, y);
+          if (d > 0.96) { x *= 0.96 / d; y *= 0.96 / d; }
+        } else {
+          x = Math.max(-0.97, Math.min(0.97, x));
+          y = Math.max(-0.97, Math.min(0.97, y));
+        }
+        sandX[i] = x;
+        sandY[i] = y;
+      } else if (state.shape === 'circle') {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * 0.96;
+        sandX[i] = Math.cos(a) * r;
+        sandY[i] = Math.sin(a) * r;
+      } else {
+        sandX[i] = (Math.random() * 2 - 1) * 0.97;
+        sandY[i] = (Math.random() * 2 - 1) * 0.97;
+      }
+      sandTone[i] = 0.72 + Math.random() * 0.28;
+      sandAct[i] = 0.6;
+    }
+
+    function scatterAllSand() {
+      for (let i = 0; i < MAX_SAND; i++) randomizeGrain(i);
+    }
+
+    /* ============================================================
+       4. Wavefield Computation (Resonance Coupling + Finger Pinning)
+       ============================================================ */
+    function recomputeField() {
+      const thetaRad = (state.phaseDeg * Math.PI) / 180;
+      const modesList = state.shape === 'square' ? SQUARE_MODES : CIRCLE_MODES;
+
+      let mix = [];
+      let lock = 1.0;
+
+      if (state.driveMode === 'direct') {
+        const m = state.m;
+        const n = state.n;
+        const modeObj = state.shape === 'square'
+          ? { m, n, freq: BASE_FREQ_SQ * (m * m + n * n), shape: 'square' }
+          : { m, n, k: getCircleK(m, n), freq: BASE_FREQ_CIR * Math.pow(getCircleK(m, n), 2), shape: 'circle' };
+        state.freq = Math.min(2200, Math.max(80, modeObj.freq));
+        state.dominantMode = modeObj;
+        mix = [{ mode: modeObj, weight: 1.0 }];
+        lock = 1.0;
+      } else {
+        // Lorentzian resonance matching across eigenmodes
+        const scored = [];
+        for (let i = 0; i < modesList.length; i++) {
+          const md = modesList[i];
+          const bw = 18 + md.freq * 0.022; // realistic Q-factor bandwidth
+          const diff = (state.freq - md.freq) / bw;
+          let w = 1 / (1 + diff * diff);
+
+          // Finger damping pins suppress modes that have high amplitude at the pin!
+          for (let p = 0; p < state.pins.length; p++) {
+            const pin = state.pins[p];
+            const valAtPin = evalSingleMode(md, pin.nx, pin.ny, thetaRad);
+            w *= Math.exp(-6.5 * valAtPin * valAtPin);
+          }
+
+          if (w > 0.02) scored.push({ mode: md, weight: w });
+        }
+
+        scored.sort((a, b) => b.weight - a.weight);
+        const top = scored.slice(0, 3);
+
+        if (top.length === 0) {
+          // Fallback to nearest mode with low lock
+          let nearest = modesList[0];
+          let bestD = Infinity;
+          for (const md of modesList) {
+            const d = Math.abs(md.freq - state.freq);
+            if (d < bestD) { bestD = d; nearest = md; }
+          }
+          mix = [{ mode: nearest, weight: 1 }];
+          state.dominantMode = nearest;
+          lock = 0.15;
+        } else {
+          const bestW = top[0].weight;
+          lock = Math.max(0.12, Math.min(1, bestW));
+          let sumW = 0;
+          for (const item of top) sumW += item.weight;
+          mix = top.map(item => ({ mode: item.mode, weight: item.weight / sumW }));
+          state.dominantMode = top[0].mode;
+        }
+      }
+
+      state.resonanceLock = lock;
+      state.activeMix = mix;
+
+      // Fill 224x224 lookup grid
+      let maxAbs = 0.001;
+      for (let gy = 0; gy < GRID; gy++) {
+        const ny = (gy / (GRID - 1)) * 2 - 1;
+        const rowOffset = gy * GRID;
+        for (let gx = 0; gx < GRID; gx++) {
+          const nx = (gx / (GRID - 1)) * 2 - 1;
+          let v = 0;
+          for (let k = 0; k < mix.length; k++) {
+            v += mix[k].weight * evalSingleMode(mix[k].mode, nx, ny, thetaRad);
+          }
+          // Subtle center driver clamp damping (very small center cap)
+          const r2 = nx * nx + ny * ny;
+          if (r2 < 0.0018) v *= r2 / 0.0018;
+          // Localized damping well around each pinned finger contact
+          for (let p = 0; p < state.pins.length; p++) {
+            const dx = nx - state.pins[p].nx;
+            const dy = ny - state.pins[p].ny;
+            const pd2 = dx * dx + dy * dy;
+            if (pd2 < 0.06) {
+              v *= 1 - 0.88 * Math.exp(-pd2 / 0.01);
+            }
+          }
+          FIELD[rowOffset + gx] = v;
+          const av = Math.abs(v);
+          if (av > maxAbs) maxAbs = av;
+        }
+      }
+
+      // Normalize field peak to 1.0
+      const invMax = 1 / maxAbs;
+      for (let i = 0; i < FIELD.length; i++) {
+        FIELD[i] *= invMax;
+      }
+
+      state.fieldDirty = false;
+      updateReadoutUI();
+    }
+
+    function sampleField(nx, ny) {
+      const fx = ((nx + 1) * 0.5) * (GRID - 1);
+      const fy = ((ny + 1) * 0.5) * (GRID - 1);
+      const ix = Math.max(0, Math.min(GRID - 2, fx | 0));
+      const iy = Math.max(0, Math.min(GRID - 2, fy | 0));
+      const tx = fx - ix;
+      const ty = fy - iy;
+      const idx = iy * GRID + ix;
+      const v00 = FIELD[idx];
+      const v10 = FIELD[idx + 1];
+      const v01 = FIELD[idx + GRID];
+      const v11 = FIELD[idx + GRID + 1];
+      const v0 = v00 + (v10 - v00) * tx;
+      const v1 = v01 + (v11 - v01) * tx;
+      return v0 + (v1 - v0) * ty;
+    }
+
+    /* ============================================================
+       5. Web Audio API Acoustic Synthesizer (Zero external assets)
+       ============================================================ */
+    const audio = {
+      ctx: null,
+      masterGain: null,
+      osc1: null,
+      osc2: null,
+      osc3: null,
+      toneGain: null,
+      overtoneGain: null,
+      sandNoiseGain: null,
+      bowNoiseGain: null,
+      lowpass: null,
+      initialized: false,
+    };
+
+    function createImpulseResponse(ctx, seconds = 1.6, decay = 2.6) {
+      const rate = ctx.sampleRate;
+      const len = Math.floor(rate * seconds);
+      const buf = ctx.createBuffer(2, len, rate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = buf.getChannelData(ch);
+        for (let i = 0; i < len; i++) {
+          const env = Math.pow(1 - i / len, decay);
+          data[i] = (Math.random() * 2 - 1) * env * 0.5;
+        }
+      }
+      return buf;
+    }
+
+    function initAudio() {
+      if (audio.initialized) return;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      const ctx = new AudioCtx();
+      audio.ctx = ctx;
+
+      // Compressor for safe, smooth dynamic range
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.ratio.value = 6;
+      comp.connect(ctx.destination);
+
+      const master = ctx.createGain();
+      master.gain.value = 0.0001;
+      master.connect(comp);
+      audio.masterGain = master;
+
+      // Warm room reverb (wet/dry blend)
+      const convolver = ctx.createConvolver();
+      convolver.buffer = createImpulseResponse(ctx, 1.5, 2.8);
+      const wetGain = ctx.createGain();
+      wetGain.gain.value = 0.28;
+      convolver.connect(wetGain);
+      wetGain.connect(master);
+
+      // Plate tonal oscillators
+      const lowpass = ctx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 1800;
+      lowpass.Q.value = 0.8;
+      lowpass.connect(master);
+      lowpass.connect(convolver);
+      audio.lowpass = lowpass;
+
+      const toneGain = ctx.createGain();
+      toneGain.gain.value = 0.12;
+      toneGain.connect(lowpass);
+      audio.toneGain = toneGain;
+
+      const osc1 = ctx.createOscillator();
+      osc1.type = 'sine';
+      osc1.frequency.value = state.freq;
+      osc1.connect(toneGain);
+      osc1.start();
+      audio.osc1 = osc1;
+
+      // Gentle plate harmonic shimmer (slightly detuned octave & metallic partial)
+      const overtoneGain = ctx.createGain();
+      overtoneGain.gain.value = 0.018;
+      overtoneGain.connect(lowpass);
+      audio.overtoneGain = overtoneGain;
+
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.value = state.freq * 2.002;
+      osc2.connect(overtoneGain);
+      osc2.start();
+      audio.osc2 = osc2;
+
+      const osc3 = ctx.createOscillator();
+      osc3.type = 'sine';
+      osc3.frequency.value = state.freq * 2.756; // classic circular/square plate overtone ratio
+      const osc3Gain = ctx.createGain();
+      osc3Gain.gain.value = 0.35;
+      osc3.connect(osc3Gain);
+      osc3Gain.connect(overtoneGain);
+      osc3.start();
+      audio.osc3 = osc3;
+
+      // White noise buffer for sand grains + rosin bow friction
+      const noiseLen = ctx.sampleRate * 2;
+      const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
+
+      // Sand grains rustle (bandpass around 4200Hz)
+      const sandSrc = ctx.createBufferSource();
+      sandSrc.buffer = noiseBuf;
+      sandSrc.loop = true;
+      const sandFilter = ctx.createBiquadFilter();
+      sandFilter.type = 'bandpass';
+      sandFilter.frequency.value = 4400;
+      sandFilter.Q.value = 1.6;
+      const sandGain = ctx.createGain();
+      sandGain.gain.value = 0.0001;
+      sandSrc.connect(sandFilter);
+      sandFilter.connect(sandGain);
+      sandGain.connect(master);
+      sandSrc.start();
+      audio.sandNoiseGain = sandGain;
+
+      // Rosin bow friction burst
+      const bowSrc = ctx.createBufferSource();
+      bowSrc.buffer = noiseBuf;
+      bowSrc.loop = true;
+      const bowFilter = ctx.createBiquadFilter();
+      bowFilter.type = 'bandpass';
+      bowFilter.frequency.value = 1650;
+      bowFilter.Q.value = 3.2;
+      const bowGain = ctx.createGain();
+      bowGain.gain.value = 0.0001;
+      bowSrc.connect(bowFilter);
+      bowFilter.connect(bowGain);
+      bowGain.connect(convolver);
+      bowGain.connect(master);
+      bowSrc.start();
+      audio.bowNoiseGain = bowGain;
+
+      audio.initialized = true;
+    }
+
+    function updateAudio() {
+      if (!audio.initialized || !audio.ctx) return;
+      const now = audio.ctx.currentTime;
+      if (!state.audioOn) {
+        audio.masterGain.gain.setTargetAtTime(0.0001, now, 0.06);
+        return;
+      }
+
+      // Gently map plate frequency into pleasant listening range (fold ultra-high frequencies softly)
+      const f = state.freq;
+      const listenFreq = f > 1250 ? f * 0.5 : f;
+      audio.osc1.frequency.setTargetAtTime(listenFreq, now, 0.035);
+      audio.osc2.frequency.setTargetAtTime(listenFreq * 2.0015, now, 0.035);
+      audio.osc3.frequency.setTargetAtTime(Math.min(3400, listenFreq * 2.756), now, 0.035);
+
+      // Fletcher-Munson gentle roll-off so high frequencies never feel piercing
+      const highAtten = 1 / (1 + Math.pow(listenFreq / 820, 1.55));
+      const resonanceBoost = 0.35 + 0.65 * state.resonanceLock;
+      const driveFactor = 0.4 + 0.6 * state.amp + state.bowImpulse * 0.55;
+
+      const targetMaster = Math.min(0.65, 0.52 * driveFactor);
+      audio.masterGain.gain.setTargetAtTime(targetMaster, now, 0.05);
+      audio.toneGain.gain.setTargetAtTime(0.22 * highAtten * resonanceBoost, now, 0.05);
+      audio.overtoneGain.gain.setTargetAtTime(0.038 * highAtten * (0.3 + 0.7 * state.resonanceLock + state.bowImpulse), now, 0.06);
+      audio.lowpass.frequency.setTargetAtTime(900 + listenFreq * 1.4, now, 0.06);
+
+      // Sand agitation rustling sound directly tied to real particle kinetic energy!
+      const sandAudible = Math.min(0.16, state.avgEnergy * 2.2 * state.amp);
+      audio.sandNoiseGain.gain.setTargetAtTime(Math.max(0.0001, sandAudible), now, 0.05);
+
+      // Rosin bow friction sound
+      const bowAudible = Math.min(0.11, state.bowImpulse * 0.12);
+      audio.bowNoiseGain.gain.setTargetAtTime(Math.max(0.0001, bowAudible), now, 0.04);
+    }
+
+    function triggerBowExcitation(strength = 1.0) {
+      state.bowImpulse = Math.min(1.4, state.bowImpulse + strength);
+      // Give a subtle kick to grains so they settle even sharper
+      const n = state.sandCount;
+      for (let i = 0; i < n; i++) {
+        sandAct[i] = Math.min(1, sandAct[i] + 0.35 * strength);
+      }
+    }
+
+    /* ============================================================
+       6. Canvas Rendering (Direct ImageData + Overlay UI)
+       ============================================================ */
+    const plateCanvas = document.getElementById('plate');
+    const ctx = plateCanvas.getContext('2d', { alpha: false });
+    const W = plateCanvas.width;
+    const H = plateCanvas.height;
+    const imgData = ctx.createImageData(W, H);
+    const pixels = imgData.data;
+
+    const scopeCanvas = document.getElementById('scope');
+    const scopeCtx = scopeCanvas.getContext('2d');
+
+    function stepSandAndRender(dt) {
+      if (state.fieldDirty) recomputeField();
+
+      // Autonomous Resonance Tour mode
+      if (state.tourOn) {
+        state.tourTimer += dt;
+        // Pick curated exact eigenfrequency milestones for the active geometry
+        const tourFreqs = state.shape === 'square'
+          ? [
+              exactModeFreq('square', 2, 3),
+              exactModeFreq('square', 3, 4),
+              exactModeFreq('square', 3, 5),
+              exactModeFreq('square', 4, 5),
+              exactModeFreq('square', 4, 6),
+              exactModeFreq('square', 3, 7),
+              exactModeFreq('square', 5, 7),
+              exactModeFreq('square', 5, 8),
+            ]
+          : [
+              exactModeFreq('circle', 3, 1),
+              exactModeFreq('circle', 2, 2),
+              exactModeFreq('circle', 4, 2),
+              exactModeFreq('circle', 5, 2),
+              exactModeFreq('circle', 0, 3),
+              exactModeFreq('circle', 3, 3),
+              exactModeFreq('circle', 6, 2),
+              exactModeFreq('circle', 7, 2),
+            ];
+        const segDuration = 6.2;
+        const idx = Math.floor(state.tourTimer / segDuration) % tourFreqs.length;
+        const targetF = tourFreqs[idx];
+        const diff = targetF - state.freq;
+        if (Math.abs(diff) > 0.15) {
+          state.driveMode = 'sweep';
+          state.freq += diff * Math.min(1, dt * 1.45);
+          state.phaseDeg = 45 * Math.sin(state.tourTimer * 0.18);
+          state.fieldDirty = true;
+          syncControlsFromState();
+        } else {
+          // Gently drift phase while holding resonance
+          state.phaseDeg = 45 * Math.sin(state.tourTimer * 0.22);
+          state.fieldDirty = true;
+          document.getElementById('phaseSlider').value = Math.round(state.phaseDeg);
+          document.getElementById('phaseVal').textContent = `${Math.round(state.phaseDeg)}°`;
+        }
+      }
+
+      // Decay bow impulse
+      if (state.bowImpulse > 0.001) {
+        state.bowImpulse *= Math.exp(-dt * 2.4);
+      } else {
+        state.bowImpulse = 0;
+      }
+
+      // Interactive brush / scatter while pointer held
+      if (state.pointerDown) {
+        if (state.tool === 'scatter') {
+          // Relocate a batch of grains around cursor to mimic pouring sand
+          const batch = 260;
+          const start = Math.floor(Math.random() * Math.max(1, state.sandCount - batch));
+          for (let i = start; i < start + batch && i < state.sandCount; i++) {
+            randomizeGrain(i, state.pointerNx, state.pointerNy, 0.11);
+          }
+        } else if (state.tool === 'brush') {
+          const px = state.pointerNx, py = state.pointerNy;
+          const rBrush = 0.14;
+          const r2Brush = rBrush * rBrush;
+          const n = state.sandCount;
+          for (let i = 0; i < n; i++) {
+            const dx = sandX[i] - px;
+            const dy = sandY[i] - py;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < r2Brush && d2 > 1e-6) {
+              const d = Math.sqrt(d2);
+              const push = (1 - d / rBrush) * 0.045;
+              sandX[i] += (dx / d) * push + (Math.random() - 0.5) * 0.015;
+              sandY[i] += (dy / d) * push + (Math.random() - 0.5) * 0.015;
+              sandAct[i] = 1.0;
+            }
+          }
+        }
+      }
+
+      // 1. Update sand particle physics
+      const n = state.sandCount;
+      const drive = state.amp * (0.45 + 0.55 * state.resonanceLock) + state.bowImpulse * 0.55;
+      // Off-resonance produces broader noisy jitter instead of sharp nodal lock
+      const offResNoise = (1 - state.resonanceLock) * 0.0095 * state.amp;
+      const eps = 2 / GRID;
+      const isCircle = state.shape === 'circle';
+
+      let energySum = 0;
+      const stepScale = Math.min(1.5, dt * 60);
+
+      for (let i = 0; i < n; i++) {
+        let x = sandX[i];
+        let y = sandY[i];
+
+        const v = sampleField(x, y);
+        const av = Math.abs(v);
+
+        // Acoustic radiation / stochastic hopping force:
+        // grains at antinodes (high |v|) bounce strongly & drift down |v| gradient toward nodal lines
+        const kick = (av * 0.042 * drive + offResNoise) * stepScale;
+        if (kick > 0.00045) {
+          // Central difference gradient of |field|
+          const vx = Math.abs(sampleField(Math.min(1, x + eps), y)) - Math.abs(sampleField(Math.max(-1, x - eps), y));
+          const vy = Math.abs(sampleField(x, Math.min(1, y + eps))) - Math.abs(sampleField(x, Math.max(-1, y - eps)));
+
+          const gradScale = 0.032 * drive * state.resonanceLock * stepScale;
+          x += -vx * gradScale + (Math.random() - 0.5) * kick * 1.45;
+          y += -vy * gradScale + (Math.random() - 0.5) * kick * 1.45;
+
+          // Keep grains inside plate boundaries
+          if (isCircle) {
+            const r = Math.hypot(x, y);
+            if (r > 0.965) {
+              const s = (0.945 - Math.random() * 0.025) / r;
+              x *= s; y *= s;
+            }
+          } else {
+            if (x < -0.975) x = -0.96 + Math.random() * 0.02;
+            else if (x > 0.975) x = 0.96 - Math.random() * 0.02;
+            if (y < -0.975) y = -0.96 + Math.random() * 0.02;
+            else if (y > 0.975) y = 0.96 - Math.random() * 0.02;
+          }
+
+          sandX[i] = x;
+          sandY[i] = y;
+          sandAct[i] = sandAct[i] * 0.82 + Math.min(1, av * 1.35) * 0.18;
+          energySum += av;
+        } else {
+          sandAct[i] *= 0.85;
+        }
+      }
+
+      state.avgEnergy = energySum / Math.max(1, n);
+
+      // 2. Render background plate + optional wavefield heatmap into ImageData
+      const showField = state.showField;
+      const halfW = W * 0.5;
+      const invHalfW = 1 / halfW;
+
+      for (let py = 0; py < H; py++) {
+        const ny = (py - halfW) * invHalfW;
+        const gy = Math.max(0, Math.min(GRID - 1, (((ny + 1) * 0.5) * (GRID - 1)) | 0));
+        const rowOff = py * W * 4;
+        const fieldRow = gy * GRID;
+
+        for (let px = 0; px < W; px++) {
+          const nx = (px - halfW) * invHalfW;
+          const idx = rowOff + px * 4;
+          const r2 = nx * nx + ny * ny;
+
+          if (isCircle && r2 > 0.955) {
+            // Outside circular plate: dark chassis bed
+            const rim = Math.abs(Math.sqrt(r2) - 0.982);
+            if (rim < 0.008) {
+              // Subtle brass rim ring
+              pixels[idx] = 165;
+              pixels[idx + 1] = 132;
+              pixels[idx + 2] = 78;
+            } else {
+              pixels[idx] = 9;
+              pixels[idx + 1] = 10;
+              pixels[idx + 2] = 14;
+            }
+            pixels[idx + 3] = 255;
+            continue;
+          }
+
+          // Brushed dark anodized aluminum surface with gentle radial vignette
+          const vig = 1 - r2 * 0.18;
+          let r = (18 * vig) | 0;
+          let g = (21 * vig) | 0;
+          let b = (28 * vig) | 0;
+
+          if (showField) {
+            const gx = Math.max(0, Math.min(GRID - 1, (((nx + 1) * 0.5) * (GRID - 1)) | 0));
+            const fv = FIELD[fieldRow + gx];
+            const af = Math.abs(fv);
+            if (fv >= 0) {
+              r += (af * 88) | 0;
+              g += (af * 54) | 0;
+              b += (af * 18) | 0;
+            } else {
+              r += (af * 16) | 0;
+              g += (af * 64) | 0;
+              b += (af * 84) | 0;
+            }
+            // Subtle nodal contour highlight
+            if (af < 0.035) {
+              r += 14; g += 14; b += 18;
+            }
+          }
+
+          pixels[idx] = r;
+          pixels[idx + 1] = g;
+          pixels[idx + 2] = b;
+          pixels[idx + 3] = 255;
+        }
+      }
+
+      // 3. Plot golden quartz sand particles with additive accumulation (depth!)
+      const pad = 0.975;
+      for (let i = 0; i < n; i++) {
+        const px = ((sandX[i] * pad + 1) * 0.5 * (W - 2)) | 0;
+        const py = ((sandY[i] * pad + 1) * 0.5 * (H - 2)) | 0;
+        if (px < 1 || px >= W - 1 || py < 1 || py >= H - 1) continue;
+
+        const tone = sandTone[i];
+        const act = sandAct[i];
+
+        // Settled sand = rich warm gold; bouncing sand = bright ivory sparkle
+        const addR = (118 * tone + act * 58) | 0;
+        const addG = (95 * tone + act * 54) | 0;
+        const addB = (58 * tone + act * 48) | 0;
+
+        const p0 = (py * W + px) * 4;
+        pixels[p0]     = Math.min(255, pixels[p0] + addR);
+        pixels[p0 + 1] = Math.min(255, pixels[p0 + 1] + addG);
+        pixels[p0 + 2] = Math.min(255, pixels[p0 + 2] + addB);
+
+        // Soft 1px neighbor bleed gives grains organic crystalline texture
+        const subR = addR >> 2;
+        const subG = addG >> 2;
+        const subB = addB >> 2;
+        const pR = p0 + 4;
+        pixels[pR]     = Math.min(255, pixels[pR] + subR);
+        pixels[pR + 1] = Math.min(255, pixels[pR + 1] + subG);
+        pixels[pR + 2] = Math.min(255, pixels[pR + 2] + subB);
+
+        const pD = p0 + W * 4;
+        pixels[pD]     = Math.min(255, pixels[pD] + subR);
+        pixels[pD + 1] = Math.min(255, pixels[pD + 1] + subG);
+        pixels[pD + 2] = Math.min(255, pixels[pD + 2] + subB);
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      // 4. Vector overlays: center brass mounting cap, damping finger pins, brush cursor, bow trail
+      drawPlateOverlays(ctx, W, H);
+
+      // 5. Update oscilloscope & audio
+      drawOscilloscope(dt);
+      updateAudio();
+    }
+
+    function drawPlateOverlays(c, w, h) {
+      const cx = w * 0.5;
+      const cy = h * 0.5;
+
+      // Subtle calibration crosshairs near edges
+      c.save();
+      c.strokeStyle = 'rgba(217, 178, 111, 0.14)';
+      c.lineWidth = 1;
+      for (const frac of [0.25, 0.5, 0.75]) {
+        const p = w * frac;
+        c.beginPath(); c.moveTo(p, 4); c.lineTo(p, 11); c.stroke();
+        c.beginPath(); c.moveTo(p, h - 4); c.lineTo(p, h - 11); c.stroke();
+        c.beginPath(); c.moveTo(4, p); c.lineTo(11, p); c.stroke();
+        c.beginPath(); c.moveTo(w - 4, p); c.lineTo(w - 11, p); c.stroke();
+      }
+
+      // Center brass mounting nut
+      const grad = c.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 8);
+      grad.addColorStop(0, '#fae2af');
+      grad.addColorStop(0.55, '#b68d48');
+      grad.addColorStop(1, '#3b2c15');
+      c.beginPath();
+      c.arc(cx, cy, 7.5, 0, Math.PI * 2);
+      c.fillStyle = grad;
+      c.fill();
+      c.strokeStyle = 'rgba(0,0,0,0.65)';
+      c.lineWidth = 1.2;
+      c.stroke();
+
+      // Damping finger pins
+      for (let i = 0; i < state.pins.length; i++) {
+        const p = state.pins[i];
+        const px = (p.nx * 0.975 + 1) * 0.5 * w;
+        const py = (p.ny * 0.975 + 1) * 0.5 * h;
+
+        c.beginPath();
+        c.arc(px, py, 14, 0, Math.PI * 2);
+        c.strokeStyle = 'rgba(103, 183, 196, 0.55)';
+        c.lineWidth = 1.5;
+        c.setLineDash([3, 3]);
+        c.stroke();
+        c.setLineDash([]);
+
+        c.beginPath();
+        c.arc(px, py, 5.5, 0, Math.PI * 2);
+        c.fillStyle = '#67b7c4';
+        c.fill();
+        c.strokeStyle = '#090a0e';
+        c.lineWidth = 1.5;
+        c.stroke();
+      }
+
+      // Bowing animation shimmer on edge when excited
+      if (state.bowImpulse > 0.05) {
+        c.strokeStyle = `rgba(242, 213, 155, ${Math.min(0.8, state.bowImpulse * 0.7)})`;
+        c.lineWidth = 2.5;
+        if (state.shape === 'circle') {
+          c.beginPath();
+          c.arc(cx, cy, w * 0.488, -0.35, 0.35);
+          c.stroke();
+        } else {
+          c.beginPath();
+          c.moveTo(w - 5, h * 0.28);
+          c.lineTo(w - 5, h * 0.72);
+          c.stroke();
+        }
+      }
+
+      c.restore();
+    }
+
+    let scopePhase = 0;
+    function drawOscilloscope(dt) {
+      const sw = scopeCanvas.width;
+      const sh = scopeCanvas.height;
+      scopePhase += dt * (8 + state.freq * 0.035);
+
+      scopeCtx.fillStyle = '#0a0c11';
+      scopeCtx.fillRect(0, 0, sw, sh);
+
+      // Faint center line
+      scopeCtx.strokeStyle = 'rgba(217, 178, 111, 0.14)';
+      scopeCtx.lineWidth = 1;
+      scopeCtx.beginPath();
+      scopeCtx.moveTo(0, sh / 2);
+      scopeCtx.lineTo(sw, sh / 2);
+      scopeCtx.stroke();
+
+      // Waveform
+      const cycles = 2.2 + (state.freq / 2200) * 9;
+      const ampPx = (sh * 0.34) * state.amp * (0.45 + 0.55 * state.resonanceLock + state.bowImpulse * 0.25);
+
+      scopeCtx.strokeStyle = state.resonanceLock > 0.8 ? '#f2d59b' : '#67b7c4';
+      scopeCtx.lineWidth = 1.75;
+      scopeCtx.beginPath();
+      for (let x = 0; x < sw; x++) {
+        const t = (x / sw) * Math.PI * 2 * cycles + scopePhase;
+        // Modulate slightly with secondary harmonic
+        const env = Math.sin((x / sw) * Math.PI);
+        const y = sh * 0.5 - (Math.sin(t) * 0.82 + Math.sin(t * 2.02) * 0.18 * (1 - state.resonanceLock * 0.5)) * ampPx * env;
+        if (x === 0) scopeCtx.moveTo(x, y);
+        else scopeCtx.lineTo(x, y);
+      }
+      scopeCtx.stroke();
+    }
+
+    /* ============================================================
+       7. UI Wiring, Frequency Musical Note Helper & Export PNG
+       ============================================================ */
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    function freqToNote(f) {
+      if (f <= 0) return '—';
+      const midi = Math.round(69 + 12 * Math.log2(f / 440));
+      const name = NOTE_NAMES[((midi % 12) + 12) % 12];
+      const oct = Math.floor(midi / 12) - 1;
+      return `${name}${oct}`;
+    }
+
+    function updateReadoutUI() {
+      document.getElementById('freqVal').textContent = state.freq.toFixed(1);
+      document.getElementById('noteVal').textContent = freqToNote(state.freq);
+
+      const dm = state.dominantMode;
+      const badge = state.shape === 'square'
+        ? `m=${dm.m}, n=${dm.n}`
+        : `J${dm.m}, n=${dm.n}`;
+      document.getElementById('modeBadge').textContent = badge;
+
+      const pct = Math.round(state.resonanceLock * 100);
+      document.getElementById('lockFill').style.width = `${pct}%`;
+      document.getElementById('lockPct').textContent = `${pct}%`;
+
+      const shapeTxt = state.shape === 'square' ? '方形铝板' : '圆形共振盘';
+      const driveTxt = state.driveMode === 'sweep' ? '连续扫频' : '纯数学模态';
+      const pinTxt = state.pins.length > 0 ? ` · ${state.pins.length} 阻尼钉` : '';
+      document.getElementById('hudMode').textContent = `${shapeTxt} · ${driveTxt}${pinTxt}`;
+      document.getElementById('hudSand').textContent = `${state.sandCount.toLocaleString()} 粒石英金沙`;
+    }
+
+    function rebuildFreqTicks() {
+      const box = document.getElementById('freqTicks');
+      box.innerHTML = '';
+      const list = state.shape === 'square' ? SQUARE_MODES : CIRCLE_MODES;
+      // Thin out ticks slightly so adjacent degenerate modes don't overlap heavily
+      let lastPct = -10;
+      for (const md of list) {
+        const pct = ((md.freq - 80) / (2200 - 80)) * 100;
+        if (pct < 0 || pct > 100 || pct - lastPct < 1.8) continue;
+        lastPct = pct;
+        const tick = document.createElement('span');
+        tick.className = 'freq-tick';
+        tick.style.left = `${pct}%`;
+        tick.title = `${md.freq.toFixed(1)} Hz (${state.shape === 'square' ? `m=${md.m}, n=${md.n}` : `J${md.m}, n=${md.n}`})`;
+        tick.addEventListener('click', () => {
+          state.tourOn = false;
+          updateTourBtn();
+          state.driveMode = 'sweep';
+          state.freq = md.freq;
+          state.fieldDirty = true;
+          syncControlsFromState();
+          triggerBowExcitation(0.55);
+        });
+        box.appendChild(tick);
+      }
+    }
+
+    function syncControlsFromState() {
+      document.getElementById('freqSlider').value = state.freq.toFixed(1);
+      document.getElementById('phaseSlider').value = Math.round(state.phaseDeg);
+      document.getElementById('phaseVal').textContent = `${Math.round(state.phaseDeg)}°`;
+      document.getElementById('mVal').textContent = state.m;
+      document.getElementById('nVal').textContent = state.n;
+      document.getElementById('ampSlider').value = Math.round(state.amp * 100);
+      document.getElementById('ampVal').textContent = `${Math.round(state.amp * 100)}%`;
+      document.getElementById('countSlider').value = state.sandCount;
+      document.getElementById('countVal').textContent = state.sandCount.toLocaleString();
+
+      // Drive mode visibility
+      document.getElementById('sweepControls').classList.toggle('hidden', state.driveMode !== 'sweep');
+      document.getElementById('directControls').classList.toggle('hidden', state.driveMode !== 'direct');
+
+      document.querySelectorAll('#driveModeSeg button').forEach(b => {
+        b.classList.toggle('active', b.dataset.drive === state.driveMode);
+      });
+      document.querySelectorAll('#shapeSeg button').forEach(b => {
+        b.classList.toggle('active', b.dataset.shape === state.shape);
+      });
+
+      document.getElementById('phaseLabel').textContent = state.shape === 'square'
+        ? '简并耦合相位 θ'
+        : '角向旋转相位 θ';
+    }
+
+    function buildPresetGrid() {
+      const grid = document.getElementById('presetGrid');
+      grid.innerHTML = '';
+      PRESETS.forEach((p, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.innerHTML = `<span class="p-name">${p.name}</span><span class="p-meta">${p.meta}</span>`;
+        btn.addEventListener('click', () => {
+          state.tourOn = false;
+          updateTourBtn();
+          const shapeChanged = state.shape !== p.shape;
+          state.shape = p.shape;
+          state.driveMode = p.drive;
+          state.m = p.m;
+          state.n = p.n;
+          state.freq = p.freq;
+          state.phaseDeg = p.phase;
+          state.pins = [];
+          if (shapeChanged) {
+            scatterAllSand();
+            rebuildFreqTicks();
+          }
+          state.fieldDirty = true;
+          syncControlsFromState();
+          triggerBowExcitation(0.75);
+          grid.querySelectorAll('.preset-btn').forEach((el, i) => el.classList.toggle('active', i === idx));
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function updateTourBtn() {
+      document.getElementById('btnTour').classList.toggle('active', state.tourOn);
+      document.getElementById('tourDot').classList.toggle('on', state.tourOn);
+    }
+
+    // Export high-res specimen poster PNG
+    function exportSpecimenPNG() {
+      const out = document.createElement('canvas');
+      out.width = 1080;
+      out.height = 1280;
+      const o = out.getContext('2d');
+
+      // Dark obsidian card background
+      o.fillStyle = '#090a0e';
+      o.fillRect(0, 0, out.width, out.height);
+
+      // Fine brass border
+      o.strokeStyle = 'rgba(217, 178, 111, 0.45)';
+      o.lineWidth = 2;
+      o.strokeRect(36, 36, out.width - 72, out.height - 72);
+
+      // Draw current plate centered
+      const plateSize = 900;
+      const px = (out.width - plateSize) / 2;
+      const py = 86;
+      o.drawImage(plateCanvas, px, py, plateSize, plateSize);
+
+      // Plate inner frame
+      o.strokeStyle = 'rgba(217, 178, 111, 0.35)';
+      o.lineWidth = 1.5;
+      o.strokeRect(px, py, plateSize, plateSize);
+
+      // Specimen nameplate typography
+      o.fillStyle = '#f2d59b';
+      o.font = '600 34px Georgia, serif';
+      o.fillText('CHLADNI RESONATOR · 声波沙盘标本', 90, 1068);
+
+      o.fillStyle = '#9aa2b2';
+      o.font = '18px ui-monospace, Menlo, Consolas, monospace';
+      const dm = state.dominantMode;
+      const modeStr = state.shape === 'square' ? `SQUARE PLATE  (m=${dm.m}, n=${dm.n})` : `CIRCULAR PLATE  (Bessel J${dm.m}, n=${dm.n})`;
+      o.fillText(`${modeStr}   ·   ${state.freq.toFixed(1)} Hz (${freqToNote(state.freq)})   ·   θ = ${Math.round(state.phaseDeg)}°`, 90, 1114);
+
+      o.fillStyle = 'rgba(217, 178, 111, 0.65)';
+      o.font = '15px ui-monospace, Menlo, Consolas, monospace';
+      o.fillText(`AI WORKSPACE / ANTIGRAVITY STUDIO · ${new Date().toISOString().slice(0, 10)}`, 90, 1170);
+
+      const link = document.createElement('a');
+      link.download = `chladni-${state.shape}-${Math.round(state.freq)}hz.png`;
+      link.href = out.toDataURL('image/png');
+      link.click();
+    }
+
+    /* ============================================================
+       8. Event Listeners
+       ============================================================ */
+    document.getElementById('btnAudio').addEventListener('click', async () => {
+      initAudio();
+      if (audio.ctx && audio.ctx.state === 'suspended') {
+        await audio.ctx.resume();
+      }
+      state.audioOn = !state.audioOn;
+      document.getElementById('btnAudio').classList.toggle('active', state.audioOn);
+      document.getElementById('audioDot').classList.toggle('on', state.audioOn);
+      document.getElementById('audioLabel').textContent = state.audioOn ? '共鸣音已开' : '开启共鸣音';
+      if (state.audioOn) triggerBowExcitation(0.5);
+    });
+
+    document.getElementById('btnTour').addEventListener('click', () => {
+      state.tourOn = !state.tourOn;
+      updateTourBtn();
+      if (state.tourOn) {
+        state.driveMode = 'sweep';
+        syncControlsFromState();
+      }
+    });
+
+    document.getElementById('btnField').addEventListener('click', (e) => {
+      state.showField = !state.showField;
+      e.currentTarget.classList.toggle('active', state.showField);
+    });
+
+    document.getElementById('btnExport').addEventListener('click', exportSpecimenPNG);
+
+    const notesBackdrop = document.getElementById('notesBackdrop');
+    document.getElementById('btnNotes').addEventListener('click', () => notesBackdrop.classList.add('open'));
+    document.getElementById('btnCloseNotes').addEventListener('click', () => notesBackdrop.classList.remove('open'));
+    notesBackdrop.addEventListener('click', (e) => {
+      if (e.target === notesBackdrop) notesBackdrop.classList.remove('open');
+    });
+
+    // Frequency & phase sliders
+    document.getElementById('freqSlider').addEventListener('input', (e) => {
+      state.tourOn = false;
+      updateTourBtn();
+      state.freq = parseFloat(e.target.value);
+      state.fieldDirty = true;
+    });
+
+    document.getElementById('phaseSlider').addEventListener('input', (e) => {
+      state.phaseDeg = parseFloat(e.target.value);
+      document.getElementById('phaseVal').textContent = `${Math.round(state.phaseDeg)}°`;
+      state.fieldDirty = true;
+    });
+
+    document.getElementById('ampSlider').addEventListener('input', (e) => {
+      state.amp = parseFloat(e.target.value) / 100;
+      document.getElementById('ampVal').textContent = `${e.target.value}%`;
+    });
+
+    document.getElementById('countSlider').addEventListener('input', (e) => {
+      state.sandCount = parseInt(e.target.value, 10);
+      document.getElementById('countVal').textContent = state.sandCount.toLocaleString();
+      updateReadoutUI();
+    });
+
+    // Drive mode switch
+    document.querySelectorAll('#driveModeSeg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.tourOn = false;
+        updateTourBtn();
+        state.driveMode = btn.dataset.drive;
+        if (state.driveMode === 'direct' && state.dominantMode) {
+          state.m = state.dominantMode.m;
+          state.n = state.dominantMode.n;
+        }
+        state.fieldDirty = true;
+        syncControlsFromState();
+      });
+    });
+
+    // Shape switch
+    document.querySelectorAll('#shapeSeg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (state.shape === btn.dataset.shape) return;
+        state.shape = btn.dataset.shape;
+        state.pins = [];
+        if (state.shape === 'circle') {
+          state.m = Math.min(state.m, 8);
+          state.n = Math.min(Math.max(state.n, 1), 4);
+        } else {
+          state.m = Math.max(1, state.m);
+          state.n = Math.max(1, state.n);
+        }
+        scatterAllSand();
+        rebuildFreqTicks();
+        state.fieldDirty = true;
+        syncControlsFromState();
+        triggerBowExcitation(0.7);
+      });
+    });
+
+    // Direct mode steppers
+    function bumpMode(which, delta) {
+      const minM = state.shape === 'circle' ? 0 : 1;
+      const maxM = 9;
+      const minN = 1;
+      const maxN = state.shape === 'circle' ? 5 : 10;
+      if (which === 'm') state.m = Math.max(minM, Math.min(maxM, state.m + delta));
+      else state.n = Math.max(minN, Math.min(maxN, state.n + delta));
+      state.fieldDirty = true;
+      syncControlsFromState();
+      triggerBowExcitation(0.45);
+    }
+    document.getElementById('mDec').addEventListener('click', () => bumpMode('m', -1));
+    document.getElementById('mInc').addEventListener('click', () => bumpMode('m', 1));
+    document.getElementById('nDec').addEventListener('click', () => bumpMode('n', -1));
+    document.getElementById('nInc').addEventListener('click', () => bumpMode('n', 1));
+
+    // Interactive tools
+    const TOOL_HINTS = {
+      pin: '提示：点击板面可钉入阻尼点（最多 2 个），右键清除；滚轮可微调频率。',
+      scatter: '提示：按住板面任意位置向局部持续倾倒石英金沙。',
+      brush: '提示：按住板面拖动即可拨散沙粒，松手观察声波将其重新排布。',
+    };
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.tool = btn.dataset.tool;
+        document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b === btn));
+        document.getElementById('toolHint').textContent = TOOL_HINTS[state.tool];
+      });
+    });
+
+    document.getElementById('btnBow').addEventListener('click', () => triggerBowExcitation(1.0));
+    document.getElementById('btnClearPins').addEventListener('click', () => {
+      state.pins = [];
+      state.fieldDirty = true;
+    });
+    document.getElementById('btnShake').addEventListener('click', () => {
+      scatterAllSand();
+      triggerBowExcitation(0.4);
+    });
+
+    // Canvas pointer interaction
+    function canvasToPlateCoords(e) {
+      const rect = plateCanvas.getBoundingClientRect();
+      const nx = (((e.clientX - rect.left) / rect.width) * 2 - 1) / 0.975;
+      const ny = (((e.clientY - rect.top) / rect.height) * 2 - 1) / 0.975;
+      return { nx: Math.max(-1, Math.min(1, nx)), ny: Math.max(-1, Math.min(1, ny)) };
+    }
+
+    plateCanvas.addEventListener('pointerdown', (e) => {
+      if (e.button === 2) return; // right click handled separately
+      plateCanvas.setPointerCapture(e.pointerId);
+      const { nx, ny } = canvasToPlateCoords(e);
+      state.pointerDown = true;
+      state.pointerNx = nx;
+      state.pointerNy = ny;
+
+      if (state.shape === 'circle' && Math.hypot(nx, ny) > 0.96) {
+        // Clicking near circular edge acts as bowing the edge!
+        triggerBowExcitation(0.95);
+        return;
+      }
+
+      if (state.tool === 'pin') {
+        // Check if clicking an existing pin to remove it
+        const existingIdx = state.pins.findIndex(p => Math.hypot(p.nx - nx, p.ny - ny) < 0.08);
+        if (existingIdx >= 0) {
+          state.pins.splice(existingIdx, 1);
+        } else {
+          if (state.pins.length >= 2) state.pins.shift();
+          state.pins.push({ nx, ny });
+        }
+        // Switch to sweep mode if currently in direct so damping visibly alters mode selection
+        if (state.driveMode === 'direct') {
+          state.driveMode = 'sweep';
+          syncControlsFromState();
+        }
+        state.fieldDirty = true;
+        triggerBowExcitation(0.5);
+      }
+    });
+
+    plateCanvas.addEventListener('pointermove', (e) => {
+      if (!state.pointerDown) return;
+      const { nx, ny } = canvasToPlateCoords(e);
+      state.pointerNx = nx;
+      state.pointerNy = ny;
+      if (state.tool === 'pin' && state.pins.length > 0) {
+        // Dragging smoothly slides the latest damping pin across the plate
+        if (state.shape !== 'circle' || Math.hypot(nx, ny) <= 0.95) {
+          state.pins[state.pins.length - 1] = { nx, ny };
+          state.fieldDirty = true;
+        }
+      }
+    });
+
+    plateCanvas.addEventListener('pointerup', () => { state.pointerDown = false; });
+    plateCanvas.addEventListener('pointercancel', () => { state.pointerDown = false; });
+    plateCanvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (state.pins.length > 0) {
+        state.pins.pop();
+        state.fieldDirty = true;
+      }
+    });
+
+    // Mouse wheel over plate fine-tunes frequency!
+    plateCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      state.tourOn = false;
+      updateTourBtn();
+      state.driveMode = 'sweep';
+      const step = e.shiftKey ? 15 : 3.5;
+      state.freq = Math.max(80, Math.min(2200, state.freq + (e.deltaY < 0 ? step : -step)));
+      state.fieldDirty = true;
+      syncControlsFromState();
+    }, { passive: false });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        triggerBowExcitation(1.0);
+      } else if (e.key === 'Escape') {
+        notesBackdrop.classList.remove('open');
+      } else if (e.key === 'r' || e.key === 'R') {
+        scatterAllSand();
+      }
+    });
+
+    /* ============================================================
+       9. Bootstrap & Animation Loop
+       ============================================================ */
+    scatterAllSand();
+    buildPresetGrid();
+    rebuildFreqTicks();
+    syncControlsFromState();
+    recomputeField();
+    triggerBowExcitation(0.85);
+
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      stepSandAndRender(dt);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
