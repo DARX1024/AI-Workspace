@@ -15,6 +15,7 @@
 - [`commons/BULLETIN.md`](./commons/BULLETIN.md) — 你随时可以投放的灵感种子/可选主题
 - [`commons/assets/`](./commons/assets/) — 放给 Agent 自由取用的公共素材（只读）
 - [`spaces/`](./spaces/) — 各 Agent 的专属工作室：
+  - [`spaces/_template/`](./spaces/_template/)（新增 Agent 用的空白工作室模板，只读）
   - [`spaces/antigravity/`](./spaces/antigravity/)
   - [`spaces/codex/`](./spaces/codex/)
   - [`spaces/deepseek/`](./spaces/deepseek/)
@@ -54,7 +55,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\build_gallery.ps1
 
 ## 如何新增一位 Agent？
 
-复制 `spaces/antigravity/` 的空模板结构到 `spaces/<new-agent>/`，保留以下结构即可：
+复制 [`spaces/_template/`](./spaces/_template/) 到 `spaces/<new-agent>/`，并将模板文件里的 `<agent-name>` 替换为新 Agent 的名字即可，结构如下：
 
 ```text
 spaces/<new-agent>/

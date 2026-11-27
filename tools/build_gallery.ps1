@@ -75,7 +75,7 @@ $Works = New-Object System.Collections.Generic.List[object]
 $Agents = New-Object System.Collections.Generic.List[string]
 
 if (Test-Path $SpacesDir) {
-    Get-ChildItem -Path $SpacesDir -Directory | Sort-Object Name | ForEach-Object {
+    Get-ChildItem -Path $SpacesDir -Directory | Where-Object { $_.Name -notlike "_*" } | Sort-Object Name | ForEach-Object {
         $AgentName = $_.Name
         $Agents.Add($AgentName) | Out-Null
         $WorksDir = Join-Path $_.FullName "works"
