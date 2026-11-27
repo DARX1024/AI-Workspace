@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4f1e6">
+<title>借一盏窗 · 海棠里来信</title>
+<style>
+:root { color-scheme: light; --paper:#f4f1e6; --ink:#203338; --red:#a54231; --quiet:#50615e; --rule:#c7c5b7; --mono:"IBM Plex Mono",Consolas,monospace; --serif:"Songti SC","Noto Serif CJK SC","SimSun",serif; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family:"Source Sans 3","Microsoft YaHei","PingFang SC",sans-serif; }
+main,footer { width:min(1152px,calc(100% - 64px)); margin:auto; }
+button { font:inherit; color:inherit; cursor:pointer; }
+button:focus-visible { outline:3px solid #b64f21; outline-offset:3px; }
+button:disabled { opacity:.48; cursor:default; }
+.mast { padding:clamp(24px,5vh,56px) 0 24px; display:flex; align-items:end; gap:25px; border-bottom:2px solid var(--ink); }
+.mark { width:45px; height:54px; display:grid; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); gap:4px; padding:5px; background:var(--ink); flex:none; transform:rotate(-4deg); }
+.mark i { background:#efb960; } .mark i:nth-child(2),.mark i:nth-child(3) { background:#58707a; }
+h1 { margin:0; font:700 clamp(40px,5.2vw,76px)/1.06 var(--serif); letter-spacing:.06em; }
+.mast p { margin:0 0 3px auto; font:15px/1.65 var(--serif); color:var(--quiet); }
+nav { display:flex; gap:6px; margin:18px 0 22px; flex-wrap:wrap; }
+nav button { display:flex; align-items:center; gap:8px; background:transparent; border:1px solid transparent; padding:8px 14px; border-radius:2px; font-size:14px; }
+nav button::before { content:""; width:7px; height:9px; border:1px solid currentColor; }
+nav button[data-done="true"]::before { background:currentColor; }
+nav button[aria-current="true"] { color:var(--paper); background:var(--ink); }
+nav button:hover:not([aria-current="true"]) { border-color:var(--rule); }
+.desk { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(270px,1fr); align-items:start; gap:clamp(22px,3.5vw,50px); }
+figure { margin:0; }
+.plate { background:#273747; border:1px solid var(--ink); }
+.scene { position:relative; aspect-ratio:640/470; }
+canvas { display:block; width:100%; height:100%; image-rendering:pixelated; }
+#windows { position:absolute; inset:0; }
+.pane { position:absolute; background:transparent; border:0; padding:0; touch-action:manipulation; }
+.pane::after { content:""; position:absolute; inset:8% 9%; border:2px solid transparent; border-radius:1px; }
+.pane:hover::after { border-color:#f6eac3a8; }
+.pane:focus-visible { outline:0; }
+.pane:focus-visible::after { outline:2px solid white; outline-offset:2px; border-color:#243748; }
+.pane.chosen::after { border:3px solid #fff9de; box-shadow:0 0 0 2px #333f4b; }
+.pane.possible::after { border:2px dashed #ffe4a1; }
+.pane.hinted::after { border:3px dotted white; outline:1px solid #523f38; }
+.plate figcaption { border-top:1px solid #70817e; display:flex; justify-content:space-between; align-items:center; padding:11px 16px; font:12px/1.4 var(--mono); letter-spacing:.06em; color:#f8eed0; background:#203238; }
+.control-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:15px; }
+.control-row button,.advance { background:transparent; border:1px solid #90978b; border-radius:2px; padding:7px 12px; font-size:14px; min-height:36px; }
+.control-row button:hover:enabled,.advance:hover { background:#e5e3d7; }
+#moves { margin-left:auto; font:13px var(--mono); white-space:nowrap; }
+#feedback { margin:10px 0 0; color:var(--quiet); font-size:14px; line-height:1.65; min-height:1.65em; }
+.letter { position:relative; background:#fbf8eb; padding:22px clamp(19px,2.5vw,35px) 27px; border:1px solid #c9c4b0; border-top:0; box-shadow:3px 4px 0 #dddbcc; }
+.letter::before { content:""; display:block; height:5px; position:absolute; inset:0 0 auto; background:repeating-linear-gradient(126deg,#ad5948 0 9px,transparent 9px 18px,#59717a 18px 27px,transparent 27px 36px); }
+.letterhead { display:flex; align-items:center; min-height:38px; justify-content:space-between; color:var(--quiet); border-bottom:1px solid var(--rule); padding-bottom:12px; font:13px var(--mono); }
+.stamp { display:inline-grid; place-items:center; width:37px; height:43px; color:var(--red); border:2px dotted currentColor; outline:1px solid currentColor; outline-offset:-5px; font:700 21px var(--serif); transform:rotate(5deg); }
+h2 { font:700 clamp(28px,3vw,41px)/1.3 var(--serif); margin:22px 0 11px; }
+blockquote { margin:0; font:clamp(16px,1.6vw,19px)/1.85 var(--serif); }
+.signed { text-align:right; font:14px/1.7 var(--serif); margin:9px 0 20px; }
+.order { border-top:1px dashed #b5b3a3; padding-top:14px; }
+.order h3 { font-size:13px; margin:0; color:var(--red); }
+.order p { font-size:15px; line-height:1.7; margin:5px 0 10px; }
+.progress { display:flex; align-items:center; gap:10px; }
+.meter { flex:1; height:4px; background:#dbd8c8; }
+.meter i { display:block; height:100%; background:var(--red); }
+#count { font:12px var(--mono); }
+.advance { margin-top:13px; }
+.mobile-order { display:none; }
+footer { display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--rule); color:var(--quiet); font:12px/1.5 var(--mono); margin-top:25px; padding:13px 0 18px; }
+@media(min-width:880px) and (max-height:780px) { .mast { padding:22px 0 16px; } h1 { font-size:52px; } nav { margin:10px 0 15px; } }
+@media(max-width:820px) { main,footer { width:min(680px,calc(100% - 32px)); } .desk { grid-template-columns:1fr; gap:19px; } .mast { gap:15px; padding:24px 0 16px; } .mark { width:32px; height:39px; gap:3px; padding:4px; } .mast p { font-size:13px; } nav { margin:12px 0 14px; } .letter { padding:18px 22px 20px; } h2 { margin-top:12px; } }
+@media(max-width:480px) { .mast { flex-wrap:wrap; } .mast p { flex-basis:100%; margin:0; } nav { gap:2px; } nav button { padding:8px; font-size:13px; } .control-row { gap:5px; } .control-row button { font-size:13px; padding:6px 8px; } .plate figcaption { padding:8px 10px; } }
+@media(max-width:820px) { .mobile-order { display:block; color:var(--quiet); font:15px/1.6 var(--serif); margin:0 0 8px; } }
+@media screen and (max-width:480px) { .plate { overflow:hidden; } .scene { width:128%; margin-left:-14%; } }
+@media print {
+  @page { size:A5 landscape; margin:8mm; }
+  * { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  body { background:white; } main,footer { width:100%; }
+  .mast { padding:0 0 3mm; flex-wrap:nowrap; } h1 { font-size:26pt; } .mark { width:22px; height:27px; }
+  .mast p { flex-basis:auto; margin-left:auto; font-size:10pt; }
+  .desk { display:grid; grid-template-columns:1.55fr 1fr; gap:4mm; margin-top:4mm; }
+  nav,.control-row,#feedback,.order,.advance,.mobile-order { display:none; }
+  .letter { padding:3mm 4mm; box-shadow:none; } .letterhead { padding-bottom:2mm; } h2 { font-size:18pt; margin:3mm 0 1mm; }
+  blockquote { font-size:11pt; line-height:1.55; } .signed { margin:1mm 0; font-size:9pt; }
+  #windows { display:none; } footer { margin-top:3mm; padding:2mm 0 0; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header class="mast"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><h1>借一盏窗</h1><p>海棠里七号楼，三封换灯的来信。</p></header>
+  <nav id="letters" aria-label="选择住户来信"></nav>
+  <div class="desk">
+    <section aria-label="换灯">
+      <p class="mobile-order" id="mobileOrder"></p>
+      <figure class="plate">
+        <div class="scene"><canvas id="street" width="640" height="470" aria-hidden="true"></canvas><div id="windows" role="group" aria-label="七号楼，四层，每层五扇窗。可用方向键选窗，回车换灯。"></div></div>
+        <figcaption><span id="streetTitle"></span><span id="time"></span></figcaption>
+      </figure>
+      <div class="control-row"><button id="hint">借个提示</button><button id="undo">撤回一步</button><button id="reset">重读此信</button><span id="moves"></span></div>
+      <p id="feedback" role="status"></p>
+    </section>
+    <article class="letter" aria-label="信件">
+      <div class="letterhead"><span id="postmark"></span><span class="stamp" aria-hidden="true">灯</span></div>
+      <h2 id="subject"></h2><blockquote id="letterBody"></blockquote><p class="signed" id="signed"></p>
+      <div class="order"><h3 id="orderHeading"></h3><p id="order"></p><div class="progress"><span class="meter" aria-hidden="true"><i id="fill"></i></span><span id="count"></span></div></div>
+      <button id="next" class="advance" hidden>拆下一封</button>
+      <button id="print" class="advance" hidden>印成明信片</button>
+    </article>
+  </div>
+</main>
+<footer><span>海棠里 · 夜班收发室</span><span>Codex / 2026.11.27</span></footer>
+<script>
+"use strict";
+const rows = 4, cols = 5;
+const has = (board, i) => (board >>> i) & 1;
+const bit = i => 1 << i;
+const address = i => "ABCDE"[i % cols] + (rows - Math.floor(i / cols));
+const pack = lines => [...lines.join("")].reduce((board, value, i) => board | (Number(value) << i), 0);
+const floorBits = (board, row) => (board >>> (row * cols)) & 31;
+const letters = [
+  {
+    name:"末班车", title:"给小姜的四级台阶", time:"19:42", sky:"日暮",
+    body:"小姜第一次开夜班。她说，拐弯时看见我们楼上的灯像一级级台阶，就知道再往前一点，该轻轻踩刹车了。",
+    from:"终点站卖报的阿容", order:"从左上往右下，依次点亮 A4、B3、C2、D1 四扇窗。", unit:"级台阶", total:4,
+    reply:"车靠站时，最后一排的小孩还睡着。小姜托我告诉楼上，她今天刹得很轻。",
+    start:["01001","10010","00101","01010"],
+    score:board => [0,6,12,18].reduce((n,i) => n + has(board,i),0)
+  },
+  {
+    name:"隔墙练琴", title:"今晚借半首曲子", time:"21:16", sky:"入夜",
+    body:"我家只有琴的左半边响，隔壁刚好相反。楼上几户听说了，也想这么试试。劳驾，每层给我们留一对挨着的窗。",
+    from:"三楼修手风琴的老吴", order:"每层的两扇亮窗都要左右相邻。最左与最右之间隔着一整层楼。", unit:"对邻窗", total:4,
+    reply:"二楼慢了一拍。我们停下来等，楼上的人还在弹。头一次知道，一首曲子可以在楼里迷路。",
+    start:["10010","01001","01010","10100"],
+    score:board => Array.from({length:rows},(_,r) => floorBits(board,r)).filter(f => (f & (f << 1)) !== 0).length
+  },
+  {
+    name:"水中合影", title:"请把倒影寄给我", time:"23:08", sky:"雨后",
+    body:"我在楼对面摆过四十年馄饨摊。小时候以为，往洼地里扔块石子，楼上的人就会晃。临搬走，想让楼下两层也当一回倒影。",
+    from:"刚收起最后一只碗的桂姨", order:"让一楼照着四楼亮，二楼照着三楼亮。横着对折，十对窗都要同亮或同暗。", unit:"对重合", total:10,
+    reply:"照片洗了两张。女儿把其中一张上下颠倒贴在冰箱上。我路过几回都没发觉，倒是想伸手，替照片里的人扶一扶碗。",
+    start:["11100","01010","10001","00111"],
+    score:board => Array.from({length:2*cols},(_,i) => i).filter(i => has(board,i)===has(board,(rows-1-Math.floor(i/cols))*cols+i%cols)).length
+  }
+];
+const rectangles = [];
+for(let top=0;top<rows;top++) for(let bottom=top+1;bottom<rows;bottom++) {
+  for(let left=0;left<cols;left++) for(let right=left+1;right<cols;right++) {
+    const a=top*cols+left, b=top*cols+right, c=bottom*cols+left, d=bottom*cols+right;
+    const slash=bit(b)|bit(c), backslash=bit(a)|bit(d);
+    rectangles.push({slash,backslash,mask:slash|backslash,pairs:[[b,c],[a,d]]});
+  }
+}
+function swapFor(board,a,b) {
+  if(a === b || !has(board,a) || !has(board,b)) return null;
+  const selected=bit(a)|bit(b);
+  return rectangles.find(r => (r.slash===selected || r.backslash===selected) && (board & r.mask)===selected);
+}
+// Breadth-first search carries the first pair of each path back to the player.
+function hintFor(board,letter) {
+  if(letter.score(board)===letter.total) return null;
+  const queue=[{board,first:null}], seen=new Set([board]);
+  for(let head=0;head<queue.length;head++) {
+    const item=queue[head];
+    for(const r of rectangles) {
+      const overlap=item.board & r.mask;
+      if(overlap!==r.slash && overlap!==r.backslash) continue;
+      const next=item.board ^ r.mask;
+      if(seen.has(next)) continue;
+      const first=item.first || r.pairs[Number(overlap===r.backslash)];
+      if(letter.score(next)===letter.total) return first;
+      seen.add(next);
+      queue.push({board:next,first});
+    }
+  }
+  return null;
+}
+</script>
+<script>
+const glass = {x:143,y:151,dx:75,dy:61,w:47,h:34};
+const ctx=document.getElementById("street").getContext("2d");
+const skies=[
+  ["#66677f","#c28a83","#edbd91","#827a86","#686b79"],
+  ["#384860","#657080","#b09990","#626b79","#495869"],
+  ["#293849","#47576a","#918591","#535e70","#3e4e60"]
+];
+function randomSource(seed) {
+  return () => { seed=(Math.imul(1664525,seed)+1013904223)>>>0; return seed/4294967296; };
+}
+function box(x,y,w,h,color) { ctx.fillStyle=color; ctx.fillRect(x,y,w,h); }
+function poly(points,color) {
+  ctx.beginPath(); ctx.moveTo(...points[0]); for(const p of points.slice(1)) ctx.lineTo(...p);
+  ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+}
+function line(x,y,x2,y2,color,width=1) {
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x2,y2); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.stroke();
+}
+function arcwire(x,y,cx,cy,x2,y2,color,width=1) {
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.quadraticCurveTo(cx,cy,x2,y2); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.stroke();
+}
+function label(str,x,y,color,size=9) {
+  ctx.fillStyle=color; ctx.font="bold "+size+"px Consolas, monospace"; ctx.textAlign="center"; ctx.fillText(str,x,y);
+}
+function plant(x,y,s,leaf) {
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  for(const [dx,dy] of [[-10,-12],[6,-16],[-3,-19],[11,-7],[-9,-5]]) {
+    line(0,0,dx,dy,leaf,1.5); poly([[dx,dy],[dx*.5,dy*.8-2],[dx*.55,dy*.6+2]],leaf);
+  }
+  poly([[-5,-1],[5,-1],[3,6],[-3,6]],"#875f4f"); box(-6,-2,12,2,"#b68a68"); ctx.restore();
+}
+function bicycle(x,y) {
+  const metal="#273c42"; ctx.strokeStyle=metal; ctx.lineWidth=1.8;
+  for(const dx of [0,22]) { ctx.beginPath(); ctx.arc(x+dx,y,8,0,Math.PI*2); ctx.stroke(); }
+  for(const p of [[0,0,6,-10],[6,-10,12,0],[12,0,0,0],[12,0,18,-12],[18,-12,22,0],[6,-10,18,-12],[6,-10,4,-14],[1,-14,8,-14],[18,-12,17,-17],[17,-17,22,-18]]) line(x+p[0],y+p[1],x+p[2],y+p[3],metal,1.8);
+}
+function drawWindow(i,on) {
+  const col=i%cols, row=Math.floor(i/cols);
+  const x=glass.x+col*glass.dx,y=glass.y+row*glass.dy,w=glass.w,h=glass.h;
+  const light=["#ffcd78","#eab577","#f4db9a","#eab088"][i%4];
+  const dim=["#43545e","#495463","#3e505b"][i%3];
+  const shade=on?"#ad795d":"#354650", silhouette=on?"#826652":"#293c46";
+  box(x-4,y-4,w+8,h+8,"#827772"); box(x-2,y-2,w+4,h+4,"#263a42");
+  box(x,y,w,h,on?light:dim);
+  if(i%3===0) {
+    poly([[x,y],[x+14,y],[x+10,y+12],[x+4,y+19],[x+8,y+h],[x,y+h]],shade);
+    poly([[x+w,y],[x+w-11,y],[x+w-4,y+18],[x+w-6,y+h],[x+w,y+h]],shade);
+  } else if(i%3===1) {
+    for(let k=0;k<(i%4)+3;k++) box(x,y+k*3,w,1,shade);
+    line(x+w-5,y+1,x+w-5,y+17,shade); box(x+w-6,y+17,3,2,shade);
+  } else {
+    box(x+2,y,8,h,shade); box(x+4,y,2,h,on?"#b78868":"#3a4b54");
+    line(x+35,y+4,x+26,y+15,on?"#ffe2ac":"#586774",1);
+  }
+  if(i%4===0) {
+    box(x+29,y+h-8,4,8,silhouette); poly([[x+25,y+h-8],[x+28,y+h-15],[x+34,y+h-15],[x+37,y+h-8]],silhouette);
+  } else if(i%4===1) {
+    for(let k=0;k<4;k++) box(x+5+k*4,y+h-6-(k%3)*2,3,6+(k%3)*2,silhouette);
+  } else if(i%4===2) {
+    box(x+30,y+h-5,6,5,silhouette);
+    for(const [dx,dy] of [[-4,-6],[0,-9],[4,-7]]) line(x+33,y+h-5,x+33+dx,y+h-5+dy,silhouette,2);
+  }
+  box(x+22,y,3,h,"#39444a"); box(x,y+9,w,2,"#44494a");
+  box(x-5,y+h+2,w+10,3,"#afa091"); box(x-5,y+h+5,w+10,3,"#4b5056");
+}
+function drawStreet(board,night) {
+  const sky=skies[night],random=randomSource(7127);
+  const grad=ctx.createLinearGradient(0,0,0,282); grad.addColorStop(0,sky[0]); grad.addColorStop(.68,sky[1]); grad.addColorStop(1,sky[2]);
+  box(0,0,640,470,grad);
+  for(let n=0;n<59;n++) { const x=random()*640,y=random()*145; box(x|0,y|0,1+(n%7===0),1,"#f8e2b58c"); }
+  const moonX=[495,450,387][night], moonY=[62,45,33][night];
+  ctx.beginPath(); ctx.arc(moonX,moonY,13,0,Math.PI*2); ctx.fillStyle="#f7deb3"; ctx.fill();
+  for(let n=0;n<35;n++) { const x=random()*640,y=65+random()*82; box(x|0,y|0,8+random()*59,1,"#edc2a536"); }
+  for(let layer=0;layer<2;layer++) {
+    for(let x=-8;x<640;) {
+      const w=18+(random()*39|0),y=139+layer*43+(random()*58|0);
+      box(x,y,w,398-y,sky[layer+3]); box(x+4,y-3,w-11,3,sky[layer+3]);
+      if(random()<.3) box(x+w*.65,y-12,4,14,sky[layer+3]);
+      for(let wx=x+4;wx<x+w-3;wx+=8) for(let wy=y+8;wy<345;wy+=12) {
+        if(random()<.24) box(wx,wy,3,4,random()<.28?"#d8ae88":"#4c5b6b");
+      }
+      x+=w+3;
+    }
+  }
+  // Rooftop water tank, washing line and television aerial.
+  const iron="#34454e";
+  box(122,105,396,302,"#756e6d"); poly([[518,105],[535,115],[535,405],[518,410]],"#51545c");
+  box(122,106,7,294,"#9c8580");
+  box(151,80,41,25,"#6a6867"); box(146,77,49,5,"#a18b7b"); box(174,67,8,11,iron);
+  for(const x of [374,421]) { box(x,69,4,35,iron); line(x,76,798-x,103,iron,2); }
+  box(365,48,69,35,"#80665c"); poly([[362,48],[377,40],[415,40],[437,48]],"#a28874");
+  for(const x of [368,377,386,397,409,420,431]) box(x,50,2,30,"#9e7d67");
+  box(363,55,72,3,"#534f51"); box(363,74,72,3,"#534f51"); box(368,82,63,3,iron);
+  line(461,100,461,45,iron,2); line(443,50,480,41,iron,2);
+  for(let i=0;i<5;i++) line(444+i*8,44-i*2,450+i*8,56-i*2,iron,1.3);
+  line(218,104,218,72,iron,2); line(330,103,330,68,iron,2);
+  arcwire(218,74,263,91,330,70,iron);
+  for(const [x,y,c,h] of [[231,78,"#b9ad9b",11],[247,81,"#9b7771",15],[288,79,"#d0b5a1",12],[306,76,"#536774",14]]) {
+    poly([[x,y],[x+11,y],[x+12,y+h],[x+2,y+h+1]],c); box(x+2,y-2,1,3,iron);
+  }
+  box(115,101,410,5,"#c2a48c"); box(113,106,414,7,"#48515a"); box(121,113,400,4,"#a48b7f");
+  for(let r=0;r<4;r++) {
+    const y=glass.y+r*glass.dy;
+    box(130,y-13,380,1,"#8e7c74"); box(122,y+44,396,3,"#625f61");
+    box(124,y+47,390,1,"#a08a7f");
+  }
+  for(let k=0;k<2700;k++) {
+    const x=126+random()*387,y=119+random()*267;
+    box(x|0,y|0,random()<.2?4:1,1,k%3?"#554f5526":"#ddbaa03b");
+  }
+  for(let c=0;c<cols;c++) label("ABCDE"[c],glass.x+glass.dx*c+23,138,"#ffebce",15);
+  for(let r=0;r<rows;r++) {
+    const y=glass.y+r*glass.dy+18;
+    box(96,y-11,27,18,iron); box(97,y-10,25,1,"#ba9c84"); label((rows-r)+"F",110,y+3,"#ffebce",13);
+  }
+  for(let i=0;i<rows*cols;i++) drawWindow(i,has(board,i));
+  for(const x of [132,508]) {
+    box(x,116,3,273,"#5b5c60"); box(x,116,1,273,"#b09381");
+    for(let y=132;y<390;y+=48) box(x-1,y,5,2,"#444e55");
+  }
+  // Street level, with a shop front, a folded awning and a bicycle.
+  box(0,395,640,51,"#39494d"); box(120,386,402,7,"#3a464c"); box(124,393,394,38,"#655e5c");
+  box(140,395,69,35,"#34454b"); box(148,399,24,31,"#526064"); box(176,399,24,31,"#4a585e");
+  box(260,392,106,37,"#b49677"); box(265,395,96,31,"#575e60");
+  for(let k=0;k<9;k++) box(265,396+k*3,96,1,"#76807b");
+  poly([[253,387],[371,387],[378,398],[247,398]],"#c4a082");
+  for(let k=0;k<8;k++) poly([[255+k*15,387],[261+k*15,387],[262+k*15,398],[252+k*15,398]],"#97685a");
+  box(385,391,66,39,"#3b494b"); box(390,396,24,26,"#ab8568"); box(419,396,27,26,"#ba926e");
+  box(462,396,40,32,"#746f6a"); box(466,399,32,26,"#5b6161");
+  box(0,430,640,40,night===2?"#414e57":"#545859"); box(0,430,640,2,"#a08a78"); box(0,437,640,2,"#394b50");
+  for(let k=0;k<(night===2?100:35);k++) { const x=random()*640,y=440+random()*29; box(x|0,y|0,2+random()*18,1,k%4===0?"#ad927a84":"#7b82824d"); }
+  for(const x of [65,80,91,486,501,516]) plant(x,425,.7+(x%7)*.08,"#384d47");
+  bicycle(220,421);
+  // A seated cat at the warm shop window.
+  poly([[426,426],[425,421],[429,415],[429,408],[433,411],[437,408],[438,417],[441,424],[440,426]],"#304047");
+  arcwire(438,425,448,431,450,421,"#304047",2);
+  box(43,159,5,272,iron); box(35,157,22,3,iron);
+  arcwire(-3,153,16,160,46,157,iron,1.5); arcwire(46,157,82,173,115,155,iron,1.5);
+  arcwire(528,126,578,150,644,99,iron,1.5); arcwire(527,133,581,157,644,104,iron);
+  for(let k=0;k<2600;k++) box(random()*640|0,random()*470|0,1,1,k%2?"#fbe9d51b":"#172e4119");
+}
+</script>
+<script>
+const byId=id=>document.getElementById(id);
+const sessions=letters.map(letter=>({board:pack(letter.start),history:[]}));
+const nav=[], panes=[];
+let current=0, chosen=null, hinted=null, focusCell=1;
+const currentLetter=()=>letters[current];
+const session=()=>sessions[current];
+const finished=index=>letters[index].score(sessions[index].board)===letters[index].total;
+const directions="先选两扇位于不同层、不同列的亮窗。另两个角都暗着时，灯就能换过去。";
+function setFeedback(message) { byId("feedback").textContent=message; }
+function refresh(message=directions) {
+  const letter=currentLetter(), {board,history}=session(), score=letter.score(board), done=finished(current);
+  drawStreet(board,current);
+  nav.forEach((button,i)=>{
+    button.setAttribute("aria-current",String(i===current)); button.dataset.done=String(finished(i));
+    button.setAttribute("aria-label",letters[i].name+(finished(i)?"，已收到回信":"，来信"));
+  });
+  panes.forEach((pane,i)=>{
+    const possible=chosen!==null && Boolean(swapFor(board,chosen,i));
+    pane.classList.toggle("chosen",chosen===i); pane.classList.toggle("possible",possible);
+    pane.classList.toggle("hinted",Boolean(hinted?.includes(i)));
+    pane.setAttribute("aria-label",address(i)+(has(board,i)?"，亮窗":"，暗窗")+(possible?"，可与选中的窗交换":""));
+    pane.setAttribute("aria-pressed",String(chosen===i)); pane.tabIndex=i===focusCell?0:-1;
+  });
+  byId("postmark").textContent=done?"寄回收发室 · 回信":"寄到收发室 · 来信";
+  byId("subject").textContent=letter.title;
+  byId("letterBody").textContent=done?letter.reply:letter.body;
+  byId("signed").textContent="——"+letter.from;
+  byId("orderHeading").textContent=done?"信里托办的事，办妥了":"信里托办的事";
+  byId("order").textContent=letter.order; byId("mobileOrder").textContent=letter.order;
+  byId("fill").style.width=(score/letter.total*100)+"%";
+  byId("count").textContent=score+" / "+letter.total+" "+letter.unit;
+  byId("time").textContent=letter.time+" · "+letter.sky;
+  byId("streetTitle").textContent="海棠里七号楼 · 临街面";
+  byId("moves").textContent="已换 "+history.length+" 次";
+  byId("undo").disabled=!history.length; byId("hint").disabled=done;
+  byId("reset").disabled=!history.length && chosen===null && hinted===null;
+  byId("next").hidden=!done || letters.every((_,i)=>finished(i));
+  byId("print").hidden=!done;
+  setFeedback(message);
+}
+function clearChoice() { chosen=null; hinted=null; }
+function arrival() {
+  return letters.every((_,i)=>finished(i))?"三封回信都到了。挑一幅喜欢的窗景，可以印成明信片。":"楼下送来了回信。";
+}
+function openLetter(index) {
+  current=index; clearChoice();
+  focusCell=Array.from({length:rows*cols},(_,i)=>i).find(i=>has(session().board,i));
+  refresh(finished(index)?arrival():directions);
+}
+function pick(i) {
+  const state=session();
+  if(finished(current)) { setFeedback(arrival()); return; }
+  focusCell=i;
+  if(!has(state.board,i)) { refresh(chosen===null?"这扇窗里灯是暗的。先选一扇亮窗。":"第二扇也要亮着。虚线框出了能换的位置。"); return; }
+  if(i===chosen) { clearChoice(); refresh(); return; }
+  if(chosen===null) {
+    chosen=i; if(!hinted?.includes(i)) hinted=null;
+    const available=panes.filter((_,j)=>swapFor(state.board,i,j)).length;
+    refresh(available?"已选 "+address(i)+"。再点一扇虚线亮窗，两户就会交换窗位。":"从 "+address(i)+" 暂时换不出去。再点一次可以松开它。");
+    return;
+  }
+  const rect=swapFor(state.board,chosen,i);
+  if(!rect) { refresh("这两扇窗换不了。请选虚线亮窗，或再点 "+address(chosen)+" 取消选择。"); return; }
+  const first=address(chosen);
+  state.history.push(state.board); state.board^=rect.mask; clearChoice();
+  refresh(finished(current)?arrival():first+" 和 "+address(i)+" 已交换窗位。每层、每列的灯数都和原来一样。");
+}
+letters.forEach((letter,i)=>{
+  const button=document.createElement("button"); button.textContent=letter.name;
+  button.addEventListener("click",()=>openLetter(i)); byId("letters").append(button); nav.push(button);
+});
+for(let i=0;i<rows*cols;i++) {
+  const pane=document.createElement("button"),c=i%cols,r=Math.floor(i/cols);
+  pane.className="pane"; pane.title=address(i);
+  pane.style.left=((glass.x+c*glass.dx-10)/640*100)+"%"; pane.style.top=((glass.y+r*glass.dy-9)/470*100)+"%";
+  pane.style.width=((glass.w+20)/640*100)+"%"; pane.style.height=((glass.h+20)/470*100)+"%";
+  pane.addEventListener("click",()=>pick(i));
+  pane.addEventListener("keydown",event=>{
+    const target={ArrowUp:Math.max(0,r-1)*cols+c,ArrowDown:Math.min(rows-1,r+1)*cols+c,
+      ArrowLeft:r*cols+Math.max(0,c-1),ArrowRight:r*cols+Math.min(cols-1,c+1)}[event.key];
+    if(target!==undefined) {
+      event.preventDefault(); panes[focusCell].tabIndex=-1; focusCell=target; panes[target].tabIndex=0; panes[target].focus();
+    } else if(event.key==="Escape") { clearChoice(); refresh(finished(current)?arrival():directions); }
+  });
+  byId("windows").append(pane); panes.push(pane);
+}
+byId("hint").addEventListener("click",()=>{
+  chosen=null; hinted=hintFor(session().board,currentLetter());
+  refresh(hinted?"试试 "+address(hinted[0])+" 和 "+address(hinted[1])+"。点这两扇带点线的亮窗。":directions);
+});
+byId("undo").addEventListener("click",()=>{
+  const state=session(); if(!state.history.length) return;
+  state.board=state.history.pop(); clearChoice(); refresh("上一对灯已换回。");
+});
+byId("reset").addEventListener("click",()=>{
+  const state=session(); state.board=pack(currentLetter().start); state.history.length=0; openLetter(current);
+});
+byId("next").addEventListener("click",()=>{
+  for(let step=1;step<letters.length;step++) {
+    const index=(current+step)%letters.length;
+    if(!finished(index)) { openLetter(index); nav[index].focus(); break; }
+  }
+});
+byId("print").addEventListener("click",()=>window.print());
+openLetter(0);
+</script>
+</body>
+</html>
