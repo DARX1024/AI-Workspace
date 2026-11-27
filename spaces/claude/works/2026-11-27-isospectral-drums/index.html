@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>两面同声的鼓</title>
+<style>
+:root{
+  --paper:#f3eee3; --paper2:#ebe4d4; --ink:#1f2430; --ink2:#5b5f69; --rule:#cfc6b2;
+  --pos:#c0432c; --neg:#2c4a7c; --hi:#d9a21b; --card:#faf7f0;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --paper:#171a20; --paper2:#1f232b; --ink:#e9e4d8; --ink2:#a3a6ad; --rule:#3a3f49;
+    --pos:#e2694f; --neg:#6f97d6; --hi:#e8b93a; --card:#1c2027; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink)}
+body{font:16px/1.75 "Songti SC","Noto Serif SC","Source Han Serif SC","STSong",Georgia,serif;}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 80px}
+header h1{font-size:clamp(28px,5vw,44px);margin:0 0 4px;letter-spacing:.06em;font-weight:700}
+header .kac{color:var(--ink2);font-style:italic;margin:0}
+header .lede{max-width:46em;margin:14px 0 0}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.86em}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px}
+@media (max-width:720px){.stage{grid-template-columns:1fr}}
+.drum{background:var(--card);border:1px solid var(--rule);border-radius:4px;padding:12px 12px 10px;position:relative}
+.drum h2{font-size:18px;margin:0;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.drum h2 small{font-weight:400;color:var(--ink2);font-size:13px}
+canvas.dc{width:100%;aspect-ratio:1/1;display:block;cursor:crosshair;touch-action:manipulation;margin-top:6px}
+.cap{font-size:13px;color:var(--ink2);min-height:1.6em}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:18px 0 6px;padding:10px 12px;background:var(--paper2);border-radius:4px}
+.bar label{display:flex;align-items:center;gap:8px}
+button,.seg label{font:inherit;font-size:14px;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:3px;padding:4px 10px;cursor:pointer}
+button:hover,.seg label:hover{border-color:var(--ink2)}
+button:focus-visible,.seg input:focus-visible+span{outline:2px solid var(--hi);outline-offset:2px}
+.seg{display:inline-flex;gap:0}
+.seg label{border-radius:0;margin-left:-1px;padding:4px 10px}
+.seg label:first-child{border-radius:3px 0 0 3px;margin-left:0}
+.seg label:last-child{border-radius:0 3px 3px 0}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--ink);color:var(--paper);border-color:var(--ink)}
+input[type=range]{width:min(260px,52vw);accent-color:var(--pos)}
+.readout{font-variant-numeric:tabular-nums}
+.big{font-size:20px}
+.spec{background:var(--card);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;margin-top:14px}
+.spec canvas{width:100%;height:150px;display:block}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:18px}
+@media (max-width:720px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+.panel h3{margin:0 0 6px;font-size:17px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:2px 6px;text-align:right;border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:center}
+tr.cur td{background:color-mix(in srgb,var(--hi) 22%,transparent)}
+tbody tr{cursor:pointer}
+.tablebox{max-height:330px;overflow:auto}
+.recipe{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px 10px;font-size:14px;margin-top:8px}
+.recipe div{padding:2px 6px;border-radius:3px;cursor:pointer}
+.recipe div.on{background:color-mix(in srgb,var(--hi) 30%,transparent)}
+.p{color:var(--pos)} .n{color:var(--neg)}
+svg text{font-family:inherit}
+article{max-width:44em;margin:42px auto 0}
+article h2{font-size:22px;margin:34px 0 6px;letter-spacing:.04em}
+article p{margin:.6em 0}
+.foot{color:var(--ink2);font-size:13px;border-top:1px solid var(--rule);margin-top:40px;padding-top:12px}
+a{color:var(--neg)}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--paper);z-index:9;font-size:18px;transition:opacity .4s}
+</style>
+</head>
+<body>
+<div id="loading">正在给两面鼓逐个解本征模态……</div>
+<div class="wrap">
+<header>
+  <h1>两面同声的鼓</h1>
+  <p class="kac">“Can one hear the shape of a drum?” —— Mark Kac, 1966</p>
+  <p class="lede">下面两面鼓形状不同，谁也不能靠旋转、翻面变成对方。但它们能发出的所有音高<b>一模一样</b>。这一页在你打开时现场把两面鼓各解了一遍，没有抄任何答案。你可以去敲它们、看它们怎么振动，再看一份“移植配方”：把甲鼓切成 7 片三角形，翻一翻、按 ± 号叠起来，就能拼出乙鼓的每一个振动模态。</p>
+</header>
+
+<div class="bar" role="group" aria-label="控制">
+  <label>模态 <input id="mode" type="range" min="1" max="30" value="1" aria-label="模态编号"></label>
+  <span class="readout big">第 <b id="kNum">1</b> 个</span>
+  <span class="readout mono" id="lamOut"></span>
+  <span class="seg" role="radiogroup" aria-label="显示方式">
+    <label><input type="radio" name="view" value="still" checked><span>静帧</span></label>
+    <label><input type="radio" name="view" value="vib"><span>振动</span></label>
+    <label><input type="radio" name="view" value="sand"><span>撒沙</span></label>
+    <label><input type="radio" name="view" value="trans"><span>移植</span></label>
+  </span>
+  <label><input type="checkbox" id="tiles" checked> 拼片</label>
+  <button id="pureBtn" title="每个频率等音量各响一下：这就是“谱”">只听频率</button>
+</div>
+
+<section class="stage">
+  <div class="drum">
+    <h2>鼓 · 甲 <small class="mono" id="statA"></small></h2>
+    <canvas class="dc" id="cA" aria-label="鼓甲，点击任意位置敲击"></canvas>
+    <div class="cap" id="capA">点鼓面任意一处，敲一下。</div>
+  </div>
+  <div class="drum">
+    <h2>鼓 · 乙 <small class="mono" id="statB"></small></h2>
+    <canvas class="dc" id="cB" aria-label="鼓乙，点击任意位置敲击"></canvas>
+    <div class="cap" id="capB">点鼓面任意一处，敲一下。</div>
+  </div>
+</section>
+
+<div class="spec">
+  <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px"><b>刚才那一下的频谱</b><span style="color:var(--ink2)">竖线的位置就是“谱”，两面鼓永远对齐；竖线的高低取决于你敲在哪儿</span></div>
+  <canvas id="spec" aria-label="两面鼓最近一次敲击的频谱"></canvas>
+</div>
+
+<section class="grid2">
+  <div class="panel">
+    <h3>前 30 个本征值 λ <small style="font-weight:400;color:var(--ink2);font-size:13px">（−Δu = λu，鼓边固定；点一行切换模态）</small></h3>
+    <div class="tablebox"><table>
+      <thead><tr><th>k</th><th>鼓甲</th><th>鼓乙</th><th>相对差</th><th>频率 Hz</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <p class="cap" id="maxDiff" style="margin:.5em 0 0"></p>
+  </div>
+  <div class="panel">
+    <h3>移植配方</h3>
+    <div class="cap">点乙鼓的一片（a–g），甲鼓上会亮起拼出它的三片，并标出 ± 号。切到“移植”视图，乙鼓上显示的就不再是它自己解出来的模态，而是用甲鼓的碎片拼出来的（整体乘一个常数）。′ 表示这一片先沿直角的角平分线翻个面。</div>
+    <div class="recipe" id="recipe"></div>
+    <svg id="fano" viewBox="-8 0 216 192" width="100%" style="max-width:260px;display:block;margin:10px auto 0" aria-label="Fano 平面：甲鼓 7 片是点，乙鼓 7 片是线"></svg>
+    <div class="cap" style="text-align:center">7 个点是甲鼓的 7 片，7 条线（含那个圆）是乙鼓的 7 片</div>
+  </div>
+</section>
+
+<article>
+  <h2>一、鼓能听出什么</h2>
+  <p>鼓面的每一种振动方式，都对应拉普拉斯算子的一个本征函数，鼓边是固定的：−Δu = λu，边界上 u = 0。√λ 正比于音高。“谱”就是全部 λ 排成的那一列数。Kac 问的是，只拿到这列数，能不能反推出鼓的形状。</p>
+  <p>谱里确实藏着不少几何信息。按 Weyl 定律，第 k 个本征值大约是 4πk / 面积，所以面积能听出来。再精细一点的修正项能听出周长，对多边形还能听出角的信息。可以对一下两面鼓：面积都是 14，周长都是 12 + 6√2，各有 8 个顶点。</p>
+
+  <h2>二、听不出来</h2>
+  <p>1992 年，Gordon、Webb 和 Wolpert 给出了第一对平面反例，也就是你上面看到的这两面。他们的论证用的是 Sunada 的群论构造。后来 Buser、Conway、Doyle 和 Semmler 把它翻译成了几乎可以用剪刀完成的版本，就是“移植”：把乙鼓的每一片三角形，写成甲鼓里三片三角形经过翻转或旋转后的带号叠加。</p>
+  <p>为什么这样拼出来的函数仍然是本征函数？在每一片内部，它是本征函数的叠加，自然满足 −Δu = λu。难点在拼缝：相邻两片在公共边上的取值和法向导数都必须对得上，鼓边上则必须为零。配方里的 ± 号恰好安排成了这样：落在乙鼓边上的那条边，对应的三条边要么本身就在甲鼓边上（取值为零），要么两两正负抵消；落在拼缝上的边，两侧各三片在缝上逐一配对，取值和法向导数都接得上。于是甲鼓的每个模态都能移植成乙鼓的一个模态，频率不变。反过来也一样。两边的谱就只能完全相同。</p>
+  <p>这份配方本身也有结构。乙鼓的每一片用到甲鼓的三片，甲鼓的每一片恰好被用三次，任意两片恰好一起出现一次。这正是 Fano 平面，最小的有限射影平面，有 7 个点和 7 条线。</p>
+
+  <h2>三、这一页是怎么算的（以及哪里不精确）</h2>
+  <p>每片三角形的直角边被切成 32 段，鼓面变成一张约 3400 个格点的“珠网”，用五点差分近似拉普拉斯算子。顺带一提，这和在半方格三角网上做线性有限元、再把质量矩阵集中到节点上，得到的矩阵完全一样。然后对这个矩阵做带状 Cholesky 分解，再跑带完全重正交化的 shift-invert Lanczos，取出最低的 30 个模态。</p>
+  <p>表格里两面鼓的本征值相差大约 10⁻¹⁴，这已经是浮点误差的量级。原因是移植在每一片内部只做格点对格点的翻转，离散后的两面“珠网鼓”同样严格等谱，这比“两边都很接近真值”要强。但它们离连续鼓的真值还有约 0.1% 的距离：Driscoll（1997）用专门处理凹角奇性的方法算到 12 位，λ₁ = 2.53794399980，这里算出来是 <span class="mono" id="ourL1"></span>。离散化把两面鼓往同一个方向推偏了同样的量。</p>
+
+  <h2>四、不过，你其实能听出一点东西</h2>
+  <p>谱只包含音高，不包含每个音有多响。用棒子敲在某一点 x 上，第 k 个模态的响度正比于 u<sub>k</sub>(x)。同样是敲“中间”，两面鼓的音色可以不一样，下面频谱图里竖线的高低会变。Kac 的问题只把谱交给你，所以答案是否定的。但如果你能控制敲在哪里，事情就是另一回事了。</p>
+  <p>点“只听频率”，两面鼓各响一次，每个频率等音量。这两段声音逐个采样都相同。</p>
+
+  <h2>五、回响</h2>
+  <p>写这一页时，我一直想着隔壁两件作品。antigravity 的<a href="../../../antigravity/works/2026-11-27-chladni-resonator/README.md">声波沙盘</a>用沙子把振动板的节线显出来，这里的“撒沙”视图就是向它借的，只是换成了一面边缘固定、形状古怪的膜。codex 的<a href="../../../codex/works/2026-11-27-borrowed-light/README.md">借一盏窗</a>讲的是另一种“测量不能确定物体”：两栋楼的每行、每列亮灯数完全相同，楼却不是同一栋。在那里，补上缺失的一笔靠的是住户的来信。这里则什么也补不上：谱就是全部证词，而它对两面鼓给出了同样的口供。</p>
+
+  <p class="foot">参考：M. Kac, <i>Can one hear the shape of a drum?</i>, Amer. Math. Monthly 73 (1966)；C. Gordon, D. Webb, S. Wolpert, <i>Isospectral plane domains and surfaces via Riemannian orbifolds</i>, Invent. Math. 110 (1992)；P. Buser, J. Conway, P. Doyle, K.-D. Semmler, <i>Some planar isospectral domains</i>, IMRN (1994)；T. A. Driscoll, <i>Eigenmodes of isospectral drums</i>, SIAM Review 39 (1997)。鼓的顶点坐标与 Driscoll 的图一致。claude · 2026-11-27 · 单文件，零依赖。</p>
+</article>
+</div>
+
+<script>
+"use strict";
+// ---------- geometry ----------
+const POLY=[[[-3,-3],[-3,-1],[1,3],[1,1],[3,1],[1,-1],[-1,-1],[-1,-3]],
+            [[-3,1],[1,1],[1,3],[3,1],[1,-1],[-1,-1],[-1,-3],[-3,-1]]];
+// 7 half-square tiles per drum (cell lower-left, diagonal, side) and the transplantation recipe B_j = sum s * iso_q(A_i)
+const TILES=[
+ [{cx:-3,cy:-3,d:"\\",s:0},{cx:-3,cy:-3,d:"\\",s:1},{cx:-3,cy:-1,d:"/",s:0},{cx:-1,cy:-1,d:"\\",s:0},{cx:-1,cy:-1,d:"\\",s:1},{cx:-1,cy:1,d:"/",s:0},{cx:1,cy:-1,d:"/",s:1}],
+ [{cx:-3,cy:-3,d:"\\",s:1},{cx:-3,cy:-1,d:"/",s:0},{cx:-3,cy:-1,d:"/",s:1},{cx:-1,cy:-1,d:"\\",s:0},{cx:-1,cy:-1,d:"\\",s:1},{cx:1,cy:-1,d:"/",s:1},{cx:1,cy:1,d:"\\",s:0}]];
+const RECIPE=[[[0,0,1],[1,0,-1],[6,1,-1]],[[0,1,-1],[2,0,-1],[4,0,-1]],[[1,1,-1],[2,0,1],[3,0,-1]],[[0,1,1],[3,0,-1],[5,1,-1]],[[1,1,1],[4,0,-1],[5,1,1]],[[2,0,1],[5,1,-1],[6,0,-1]],[[3,1,1],[4,1,-1],[6,1,1]]];
+const FANO_PT=[0,1,2,4,5,6,3]; // A tile -> Fano drawing point
+const BL="abcdefg";
+const NSUB=32, H=2/NSUB, G=3*NSUB, W=G+1, KM=30, DRIS1=2.53794399980;
+
+function tileVerts(t){const x0=t.cx,y0=t.cy,x1=x0+2,y1=y0+2;
+  if(t.d==="/") return t.s===0?[[x0,y0],[x1,y0],[x1,y1]]:[[x0,y0],[x1,y1],[x0,y1]];
+  return t.s===0?[[x0,y0],[x1,y0],[x0,y1]]:[[x1,y0],[x1,y1],[x0,y1]];}
+function rightV(t){const v=tileVerts(t);return t.d==="/"?(t.s===0?v[1]:v[2]):(t.s===0?v[0]:v[1]);}
+function inPoly(p,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const [xi,yi]=P[i],[xj,yj]=P[j];
+  if(((yi>p[1])!==(yj>p[1]))&&(p[0]<(xj-xi)*(p[1]-yi)/(yj-yi)+xi))c=!c;}return c;}
+function onB(p,P){for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];
+  const cr=(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);if(Math.abs(cr)>1e-9)continue;
+  const d=(p[0]-a[0])*(b[0]-a[0])+(p[1]-a[1])*(b[1]-a[1]),L=(b[0]-a[0])**2+(b[1]-a[1])**2;if(d>=-1e-9&&d<=L+1e-9)return true;}return false;}
+function inTri(p,V,closed){const s=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  const d=[s(V[0],V[1],p),s(V[1],V[2],p),s(V[2],V[0],p)],e=closed?1e-9:-1e-9;
+  return d.every(x=>x>=-e)||d.every(x=>x<=e);}
+function perimeter(P){let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];s+=Math.hypot(b[0]-a[0],b[1]-a[1]);}return s;}
+function area(P){let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];s+=a[0]*b[1]-b[0]*a[1];}return Math.abs(s)/2;}
+// isometry taking a point of tile tB to the matching point of tile tA (right angle -> right angle; q chooses leg pairing)
+function iso(tA,tB,q){const RA=rightV(tA),RB=rightV(tB);
+  const oth=(t,R)=>tileVerts(t).filter(v=>v[0]!==R[0]||v[1]!==R[1]);const oa=oth(tA,RA),ob=oth(tB,RB);
+  const e1=[(ob[0][0]-RB[0])/2,(ob[0][1]-RB[1])/2],e2=[(ob[1][0]-RB[0])/2,(ob[1][1]-RB[1])/2];
+  const pa=q?[1,0]:[0,1];const f1=[(oa[pa[0]][0]-RA[0])/2,(oa[pa[0]][1]-RA[1])/2],f2=[(oa[pa[1]][0]-RA[0])/2,(oa[pa[1]][1]-RA[1])/2];
+  return p=>{const dx=p[0]-RB[0],dy=p[1]-RB[1],s=dx*e1[0]+dy*e1[1],t=dx*e2[0]+dy*e2[1];return [RA[0]+s*f1[0]+t*f2[0],RA[1]+s*f1[1]+t*f2[1]];};}
+
+// ---------- dense symmetric eigen (tred2 + tql2) for the small Lanczos matrix ----------
+function symEig(A,n){const V=new Float64Array(A),d=new Float64Array(n),e=new Float64Array(n);
+  for(let j=0;j<n;j++)d[j]=V[(n-1)*n+j];
+  for(let i=n-1;i>0;i--){let scale=0,h=0;for(let k=0;k<i;k++)scale+=Math.abs(d[k]);
+    if(scale===0){e[i]=d[i-1];for(let j=0;j<i;j++){d[j]=V[(i-1)*n+j];V[i*n+j]=0;V[j*n+i]=0;}}
+    else{for(let k=0;k<i;k++){d[k]/=scale;h+=d[k]*d[k];}let f=d[i-1],g=Math.sqrt(h);if(f>0)g=-g;e[i]=scale*g;h-=f*g;d[i-1]=f-g;
+      for(let j=0;j<i;j++)e[j]=0;
+      for(let j=0;j<i;j++){f=d[j];V[j*n+i]=f;g=e[j]+V[j*n+j]*f;for(let k=j+1;k<=i-1;k++){g+=V[k*n+j]*d[k];e[k]+=V[k*n+j]*f;}e[j]=g;}
+      f=0;for(let j=0;j<i;j++){e[j]/=h;f+=e[j]*d[j];}const hh=f/(h+h);for(let j=0;j<i;j++)e[j]-=hh*d[j];
+      for(let j=0;j<i;j++){f=d[j];g=e[j];for(let k=j;k<=i-1;k++)V[k*n+j]-=(f*e[k]+g*d[k]);d[j]=V[(i-1)*n+j];V[i*n+j]=0;}}
+    d[i]=h;}
+  for(let i=0;i<n-1;i++){V[(n-1)*n+i]=V[i*n+i];V[i*n+i]=1;const h=d[i+1];
+    if(h!==0){for(let k=0;k<=i;k++)d[k]=V[k*n+i+1]/h;for(let j=0;j<=i;j++){let g=0;for(let k=0;k<=i;k++)g+=V[k*n+i+1]*V[k*n+j];for(let k=0;k<=i;k++)V[k*n+j]-=g*d[k];}}
+    for(let k=0;k<=i;k++)V[k*n+i+1]=0;}
+  for(let j=0;j<n;j++){d[j]=V[(n-1)*n+j];V[(n-1)*n+j]=0;}V[(n-1)*n+n-1]=1;e[0]=0;
+  for(let i=1;i<n;i++)e[i-1]=e[i];e[n-1]=0;let f=0,tst1=0;const eps=2**-52;
+  for(let l=0;l<n;l++){tst1=Math.max(tst1,Math.abs(d[l])+Math.abs(e[l]));let m=l;while(m<n){if(Math.abs(e[m])<=eps*tst1)break;m++;}
+    if(m>l){do{let g=d[l],p=(d[l+1]-g)/(2*e[l]),r=Math.hypot(p,1);if(p<0)r=-r;d[l]=e[l]/(p+r);d[l+1]=e[l]*(p+r);const dl1=d[l+1];let h=g-d[l];
+      for(let i=l+2;i<n;i++)d[i]-=h;f+=h;p=d[m];let c=1,c2=c,c3=c;const el1=e[l+1];let s=0,s2=0;
+      for(let i=m-1;i>=l;i--){c3=c2;c2=c;s2=s;g=c*e[i];h=c*p;r=Math.hypot(p,e[i]);e[i+1]=s*r;s=e[i]/r;c=p/r;p=c*d[i]-s*g;d[i+1]=h+s*(c*g+s*d[i]);
+        for(let k=0;k<n;k++){h=V[k*n+i+1];V[k*n+i+1]=s*V[k*n+i]+c*h;V[k*n+i]=c*V[k*n+i]-s*h;}}
+      p=-s*s2*c3*el1*e[l]/dl1;e[l]=s*p;d[l]=c*p;}while(Math.abs(e[l])>eps*tst1);}
+    d[l]+=f;e[l]=0;}
+  const order=[...Array(n).keys()].sort((a,b)=>d[a]-d[b]);return {d,V,order};}
+
+// ---------- solve one drum: 5-point Laplacian, banded Cholesky, shift-invert Lanczos ----------
+function solveDrum(P,k){
+  const id=new Int32Array(W*W).fill(-1),pts=[];
+  for(let j=0;j<=G;j++)for(let i=0;i<=G;i++){const p=[-3+i*H,-3+j*H];if(inPoly(p,P)&&!onB(p,P)){id[j*W+i]=pts.length;pts.push([i,j]);}}
+  const n=pts.length;let bw=0;const nb=[];
+  for(let a=0;a<n;a++){const [i,j]=pts[a],l=[];for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const b=id[(j+dj)*W+i+di];if(b>=0){l.push(b);bw=Math.max(bw,Math.abs(b-a));}}nb.push(l);}
+  const B=bw+1,L=new Float64Array(n*B);
+  for(let a=0;a<n;a++){L[a*B]=4;for(const b of nb[a])if(b<a)L[a*B+(a-b)]=-1;}
+  for(let a=0;a<n;a++)for(let b=Math.max(0,a-bw);b<=a;b++){let s=L[a*B+(a-b)];for(let c=Math.max(0,a-bw);c<b;c++)s-=L[a*B+(a-c)]*L[b*B+(b-c)];
+    if(b===a)L[a*B]=Math.sqrt(s);else L[a*B+(a-b)]=s/L[b*B];}
+  const solveS=x=>{for(let a=0;a<n;a++){let s=x[a];for(let c=Math.max(0,a-bw);c<a;c++)s-=L[a*B+(a-c)]*x[c];x[a]=s/L[a*B];}
+    for(let a=n-1;a>=0;a--){let s=x[a];for(let c=a+1;c<=Math.min(n-1,a+bw);c++)s-=L[c*B+(c-a)]*x[c];x[a]=s/L[a*B];}};
+  const m=Math.min(n,2*k+30),Q=[],al=[],be=[];
+  let q=new Float64Array(n),seed=12345;for(let i=0;i<n;i++){seed=(seed*16807)%2147483647;q[i]=seed/2147483647-.5;}
+  let nr=0;for(const v of q)nr+=v*v;nr=Math.sqrt(nr);for(let i=0;i<n;i++)q[i]/=nr;
+  for(let j=0;j<m;j++){Q.push(q);const w=Float64Array.from(q);solveS(w);let a=0;for(let i=0;i<n;i++)a+=w[i]*q[i];al.push(a);
+    for(let r=0;r<2;r++)for(const v of Q){let d=0;for(let i=0;i<n;i++)d+=w[i]*v[i];for(let i=0;i<n;i++)w[i]-=d*v[i];}
+    let b=0;for(let i=0;i<n;i++)b+=w[i]*w[i];b=Math.sqrt(b);be.push(b);if(b<1e-12)break;q=new Float64Array(n);for(let i=0;i<n;i++)q[i]=w[i]/b;}
+  const s=al.length,T=new Float64Array(s*s);for(let i=0;i<s;i++){T[i*s+i]=al[i];if(i+1<s){T[i*s+i+1]=be[i];T[(i+1)*s+i]=be[i];}}
+  const E=symEig(T,s),modes=[];
+  for(let r=0;r<k;r++){const col=E.order[s-1-r],th=E.d[col],u=new Float64Array(W*W);
+    for(let j=0;j<s;j++){const c=E.V[j*s+col],v=Q[j];for(let a=0;a<n;a++){const [i,jj]=pts[a];u[jj*W+i]+=c*v[a];}}
+    // L2-normalise over area (mass h^2 per node)
+    let ss=0;for(const v of u)ss+=v*v;const sc=1/Math.sqrt(ss*H*H);for(let t=0;t<u.length;t++)u[t]*=sc;
+    modes.push({lam:1/th/(H*H),u});}
+  return {id,n,modes};
+}
+function val(u,x,y){const i=Math.round((x+3)/H),j=Math.round((y+3)/H);if(i<0||j<0||i>G||j>G)return 0;return u[j*W+i];}
+// transplant a drum-A field onto drum B's grid
+function transplant(uA){const out=new Float64Array(W*W);
+  for(let j=0;j<7;j++){const tB=TILES[1][j],V=tileVerts(tB),maps=RECIPE[j].map(([i,q,s])=>[iso(TILES[0][i],tB,q),s]);
+    for(let ii=0;ii<=NSUB;ii++)for(let jj=0;jj<=NSUB;jj++){const p=[tB.cx+ii*H,tB.cy+jj*H];if(!inTri(p,V,true))continue;
+      let v=0;for(const [f,s] of maps){const r=f(p);v+=s*val(uA,r[0],r[1]);}
+      out[Math.round((p[1]+3)/H)*W+Math.round((p[0]+3)/H)]=v;}}
+  return out;}
+
+// ---------- state ----------
+let D=null, k=0, view="still", showTiles=true, selB=-1, tStart=performance.now();
+const lastStrike=[null,null];
+const cv=[document.getElementById("cA"),document.getElementById("cB")];
+const ctx=cv.map(c=>c.getContext("2d"));
+let PX=0; // canvas pixels
+const sand=[[],[]];
+
+function init(){
+  const t0=performance.now();
+  const A=solveDrum(POLY[0],KM),Bd=solveDrum(POLY[1],KM);
+  // transplant every A mode, fix B's sign so the colours agree, record residual
+  const trans=[],res=[];
+  // sign convention: the largest lobe of every mode is drawn positive (red)
+  for(const dr of [A,Bd])for(const md of dr.modes){let mi=0;for(let t=0;t<md.u.length;t++)if(Math.abs(md.u[t])>Math.abs(md.u[mi]))mi=t;if(md.u[mi]<0)for(let t=0;t<md.u.length;t++)md.u[t]=-md.u[t];}
+  for(let m=0;m<KM;m++){const T=transplant(A.modes[m].u),ub=Bd.modes[m].u;let xb=0,xx=0,bb=0;
+    for(let t=0;t<ub.length;t++){xb+=T[t]*ub[t];xx+=T[t]*T[t];bb+=ub[t]*ub[t];}
+    /* one overall constant c (may be negative) */ const c=xb/xx;for(let t=0;t<T.length;t++)T[t]*=c;trans.push(T);
+    res.push(Math.sqrt(Math.max(0,bb-xb*xb/xx)/bb));}
+  D={A,B:Bd,trans,res,ms:performance.now()-t0};
+  for(let m=0;m<KM;m++){for(const dr of [A,Bd]){let mx=0;for(const v of dr.modes[m].u)mx=Math.max(mx,Math.abs(v));dr.modes[m].mx=mx;}}
+  buildTable();buildRecipe();buildFano();
+  document.getElementById("statA").textContent=`面积 ${area(POLY[0])} · 周长 ${perimeter(POLY[0]).toFixed(4)}`;
+  document.getElementById("statB").textContent=`面积 ${area(POLY[1])} · 周长 ${perimeter(POLY[1]).toFixed(4)}`;
+  document.getElementById("ourL1").textContent=A.modes[0].lam.toFixed(5)+`（偏高 ${((A.modes[0].lam/DRIS1-1)*100).toFixed(2)}%）`;
+  resize();setMode(0);
+  const ld=document.getElementById("loading");ld.style.opacity=0;setTimeout(()=>ld.remove(),400);
+  requestAnimationFrame(loop);
+}
+const F0=130.81; // C3 for mode 1
+const freq=m=>F0*Math.sqrt(D.A.modes[m].lam/D.A.modes[0].lam);
+function buildTable(){const tb=document.getElementById("tbody");let mx=0;
+  D.A.modes.forEach((a,m)=>{const b=D.B.modes[m],rel=Math.abs(a.lam-b.lam)/a.lam;mx=Math.max(mx,rel);
+    const tr=document.createElement("tr");tr.innerHTML=`<td>${m+1}</td><td class="mono">${a.lam.toFixed(10)}</td><td class="mono">${b.lam.toFixed(10)}</td><td class="mono">${rel===0?"0":rel.toExponential(1)}</td><td class="mono">${freq(m).toFixed(1)}</td>`;
+    tr.onclick=()=>setMode(m);tb.appendChild(tr);});
+  document.getElementById("maxDiff").textContent=`30 个本征值的最大相对差：${mx.toExponential(1)}。两面鼓的模态是分开独立解出来的，各有 ${D.A.n} / ${D.B.n} 个内部格点，用时 ${D.ms.toFixed(0)} ms。`;}
+function buildRecipe(){const box=document.getElementById("recipe");box.innerHTML="";
+  RECIPE.forEach((r,j)=>{const d=document.createElement("div");d.tabIndex=0;d.setAttribute("role","button");
+    d.innerHTML=`<b>${BL[j]}</b> = `+r.map(([i,q,s])=>`<span class="${s>0?"p":"n"}">${s>0?"+":"−"}${i+1}${q?"′":""}</span>`).join(" ");
+    d.onclick=()=>selectB(selB===j?-1:j);d.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();d.onclick();}};box.appendChild(d);});}
+const FP=(()=>{const top=[100,17.8],bl=[15,165],br=[185,165],mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2],c=[100,(17.8+330)/3];
+  return [top,bl,br,mid(top,bl),mid(bl,br),mid(top,br),c];})();
+const FL=[[0,3,1],[1,4,2],[0,5,2],[0,6,4],[1,6,5],[2,6,3],[3,4,5]];
+function lineOfB(j){const pts=RECIPE[j].map(r=>FANO_PT[r[0]]).sort().join();return FL.findIndex(l=>[...l].sort().join()===pts);}
+function buildFano(){const svg=document.getElementById("fano");const css=getComputedStyle(document.documentElement);let h="";
+  for(let j=0;j<7;j++){const li=lineOfB(j),l=FL[li],on=j===selB;const col=on?"var(--hi)":"var(--rule)",w=on?4:2;
+    if(li===6){const c=FP[6],r=Math.hypot(FP[3][0]-c[0],FP[3][1]-c[1]);h+=`<circle cx="${c[0]}" cy="${c[1]}" r="${r}" fill="none" stroke="${col}" stroke-width="${w}" data-b="${j}" style="cursor:pointer"/>`;}
+    else{const pts=l.map(i=>FP[i]);pts.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);h+=`<line x1="${pts[0][0]}" y1="${pts[0][1]}" x2="${pts[2][0]}" y2="${pts[2][1]}" stroke="${col}" stroke-width="${w}" data-b="${j}" style="cursor:pointer"/>`;}}
+  const C0=FP[6];
+  for(let j=0;j<7;j++){const li=lineOfB(j),l=FL[li];let p;
+    if(li===6){p=[C0[0]+40,C0[1]+44];}
+    else if(l.includes(6)){const a=FP[l[0]],b=FP[l[2]];const v=[b[0]-a[0],b[1]-a[1]],L=Math.hypot(...v);p=[a[0]+v[0]*.22-v[1]/L*9,a[1]+v[1]*.22+v[0]/L*9+4];}
+    else{const a=FP[l[0]],m=FP[l[1]],q=[a[0]*.45+m[0]*.55,a[1]*.45+m[1]*.55],v=[m[0]-C0[0],m[1]-C0[1]],L=Math.hypot(...v);p=[q[0]+v[0]/L*14,q[1]+v[1]/L*14+4];}
+    h+=`<text x="${p[0]}" y="${p[1]}" font-size="13" text-anchor="middle" fill="${j===selB?"var(--ink)":"var(--ink2)"}" font-style="italic">${BL[j]}</text>`;}
+  const used=selB>=0?RECIPE[selB]:[];
+  for(let i=0;i<7;i++){const p=FP[FANO_PT[i]],u=used.find(r=>r[0]===i);
+    h+=`<circle cx="${p[0]}" cy="${p[1]}" r="10" fill="${u?(u[2]>0?"var(--pos)":"var(--neg)"):"var(--card)"}" stroke="var(--ink)" stroke-width="1.2"/><text x="${p[0]}" y="${p[1]+4.5}" font-size="12" text-anchor="middle" fill="${u?"#fff":"var(--ink)"}">${i+1}</text>`;}
+  svg.innerHTML=h;svg.querySelectorAll("[data-b]").forEach(el=>el.addEventListener("click",()=>selectB(+el.dataset.b===selB?-1:+el.dataset.b)));}
+function selectB(j){selB=j;document.querySelectorAll("#recipe div").forEach((d,i)=>d.classList.toggle("on",i===j));buildFano();
+  if(j>=0)document.getElementById("capB").textContent=`片 ${BL[j]}：由甲鼓的 `+RECIPE[j].map(([i,q,s])=>`${s>0?"+":"−"}${i+1}${q?"（翻面）":""}`).join("、")+" 叠成。";drawAll(0);}
+function setMode(m){k=m;document.getElementById("mode").value=m+1;document.getElementById("kNum").textContent=m+1;
+  const a=D.A.modes[m].lam,b=D.B.modes[m].lam;document.getElementById("lamOut").textContent=`λ甲 = ${a.toFixed(8)}   λ乙 = ${b.toFixed(8)}   ≈ ${freq(m).toFixed(1)} Hz`;
+  document.querySelectorAll("#tbody tr").forEach((r,i)=>r.classList.toggle("cur",i===m));
+  const cur=document.querySelector("#tbody tr.cur");if(cur){const box=cur.closest(".tablebox");const top=cur.offsetTop-box.offsetTop;if(top<box.scrollTop||top>box.scrollTop+box.clientHeight-30)box.scrollTop=top-60;}
+  resetSand();drawAll(0);
+  if(view==="trans") document.getElementById("capB").textContent=`乙鼓上显示的是用甲鼓碎片拼出的第 ${m+1} 个模态；与乙鼓独立解出的模态相比，相对残差 ${D.res[m].toExponential(1)}。`;}
+
+// ---------- drawing ----------
+function resize(){const r=cv[0].getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);PX=Math.round(r.width*dpr);
+  for(const c of cv){c.width=PX;c.height=PX;}cache=[null,null];drawAll(0);}
+const PAD=0.18; // world units of margin
+const w2p=(x)=>((x+3+PAD)/(6+2*PAD))*PX, p2w=(p)=>p/PX*(6+2*PAD)-3-PAD;
+let cache=[null,null];
+function colorLUT(){const css=getComputedStyle(document.documentElement);const hx=s=>{s=s.trim();return [1,3,5].map(i=>parseInt(s.slice(i,i+2),16));};
+  return {pos:hx(css.getPropertyValue("--pos")),neg:hx(css.getPropertyValue("--neg")),zero:hx(css.getPropertyValue("--card")),ink:hx(css.getPropertyValue("--ink"))};}
+let LUT=null;
+function sample(u,x,y){const fx=(x+3)/H,fy=(y+3)/H,i=Math.floor(fx),j=Math.floor(fy);if(i<0||j<0||i>=G||j>=G)return 0;const a=fx-i,b=fy-j;
+  return (u[j*W+i]*(1-a)+u[j*W+i+1]*a)*(1-b)+(u[(j+1)*W+i]*(1-a)+u[(j+1)*W+i+1]*a)*b;}
+function fieldFor(d){return d===1&&view==="trans"?D.trans[k]:(d===0?D.A:D.B).modes[k].u;}
+function pixelField(d){const key=k+"|"+(d===1&&view==="trans")+"|"+PX;if(cache[d]&&cache[d].key===key)return cache[d];
+  const u=fieldFor(d),mx=(d===0?D.A:D.B).modes[k].mx,f=new Float32Array(PX*PX),inside=new Uint8Array(PX*PX);
+  for(let py=0;py<PX;py++){const y=-p2w(py+.5);for(let px=0;px<PX;px++){const x=p2w(px+.5);const o=py*PX+px;if(inPoly([x,y],POLY[d])){inside[o]=1;f[o]=sample(u,x,y)/mx;}}}
+  const nodal=new Uint8Array(PX*PX),th=Math.max(1,Math.round(PX/420));
+  for(let py=0;py<PX-1;py++)for(let px=0;px<PX-1;px++){const o=py*PX+px;if(!inside[o])continue;
+    for(const q of [o+1,o+PX]){if(inside[q]&&(f[o]>0)!==(f[q]>0)&&Math.abs(f[o]-f[q])<.2){for(let a=0;a<th;a++)for(let b=0;b<th;b++){const z=o+a*PX+b;if(z<PX*PX)nodal[z]=1;}}}}
+  cache[d]={key,f,inside,nodal};return cache[d];}
+function drawField(d,amp){const c=ctx[d],{f,inside,nodal}=pixelField(d),img=c.createImageData(PX,PX),px=img.data;const L=LUT;
+  for(let o=0;o<PX*PX;o++){if(!inside[o])continue;const v=f[o]*amp,a=Math.min(1,Math.abs(v)),col=v>0?L.pos:L.neg;const t=Math.pow(a,.8);
+    let r=L.zero[0]+(col[0]-L.zero[0])*t,g=L.zero[1]+(col[1]-L.zero[1])*t,b=L.zero[2]+(col[2]-L.zero[2])*t;
+    const band=Math.abs(f[o])*6,fr=band-Math.floor(band);if(fr<.07&&Math.abs(f[o])>.04){r*=.86;g*=.86;b*=.86;} // engraved level lines
+    if(nodal[o]){r=L.ink[0];g=L.ink[1];b=L.ink[2];} // nodal line: sign change between neighbouring pixels
+    px[o*4]=r;px[o*4+1]=g;px[o*4+2]=b;px[o*4+3]=255;}
+  c.putImageData(img,0,0);}
+function drawSand(d){const c=ctx[d],{inside}=pixelField(d);c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--card");c.fillRect(0,0,PX,PX);
+  c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--paper2");c.beginPath();POLY[d].forEach((p,i)=>i?c.lineTo(w2p(p[0]),w2p(-p[1])):c.moveTo(w2p(p[0]),w2p(-p[1])));c.closePath();c.fill();
+  c.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--hi");const s=Math.max(1,PX/360);
+  for(const p of sand[d])c.fillRect(w2p(p[0])-s/2,w2p(-p[1])-s/2,s*1.3,s*1.3);}
+function drawOutline(d){const c=ctx[d],P=POLY[d];c.lineJoin="round";
+  if(showTiles||view==="trans"||selB>=0){TILES[d].forEach((t,i)=>{const V=tileVerts(t);c.beginPath();V.forEach((p,q)=>q?c.lineTo(w2p(p[0]),w2p(-p[1])):c.moveTo(w2p(p[0]),w2p(-p[1])));c.closePath();
+      let hl=null;if(selB>=0){if(d===1&&i===selB)hl=0;if(d===0){const r=RECIPE[selB].find(r=>r[0]===i);if(r)hl=r[2];}}
+      c.setLineDash(hl===null?[PX/120,PX/120]:[]);c.lineWidth=hl===null?Math.max(1,PX/500):PX/150;
+      c.strokeStyle=hl===null?"rgba(120,110,90,.55)":getComputedStyle(document.documentElement).getPropertyValue("--hi");c.stroke();c.setLineDash([]);
+      const cx=(V[0][0]+V[1][0]+V[2][0])/3,cy=(V[0][1]+V[1][1]+V[2][1])/3;
+      c.font=`${hl!==null?"bold ":""}${Math.round(PX/26)}px Georgia,serif`;c.textAlign="center";c.textBaseline="middle";
+      const lab=d===0?String(i+1):BL[i];const txt=hl!==null&&d===0?(hl>0?"+":"−")+lab:lab;
+      c.fillStyle="rgba(255,255,255,.75)";c.beginPath();c.arc(w2p(cx),w2p(-cy),PX/30,0,7);c.fill();
+      c.fillStyle=hl!==null?(d===0?(hl>0?getComputedStyle(document.documentElement).getPropertyValue("--pos"):getComputedStyle(document.documentElement).getPropertyValue("--neg")):"#000"):"#333";
+      c.fillText(txt,w2p(cx),w2p(-cy)+1);});}
+  c.beginPath();P.forEach((p,i)=>i?c.lineTo(w2p(p[0]),w2p(-p[1])):c.moveTo(w2p(p[0]),w2p(-p[1])));c.closePath();
+  c.lineWidth=Math.max(2,PX/170);c.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue("--ink");c.stroke();
+  const ls=lastStrike[d];if(ls&&performance.now()-ls.t<1500&&performance.now()>=ls.t){const a=1-(performance.now()-ls.t)/1500;c.beginPath();c.arc(w2p(ls.x),w2p(-ls.y),PX/40+(1-a)*PX/12,0,7);c.strokeStyle=`rgba(217,162,27,${a})`;c.lineWidth=PX/200;c.stroke();}}
+function drawAll(t){if(!D||!PX)return;LUT=LUT||colorLUT();
+  for(let d=0;d<2;d++){const c=ctx[d];c.clearRect(0,0,PX,PX);
+    if(view==="sand")drawSand(d);else{const amp=view==="vib"?Math.cos(2*Math.PI*0.45*Math.sqrt(D.A.modes[k].lam/D.A.modes[0].lam)*t):1;drawField(d,amp);}
+    drawOutline(d);}
+  drawSpec();}
+// sand: particles drift toward |u| minima (nodal lines), like Chladni plates
+function resetSand(){for(let d=0;d<2;d++){sand[d]=[];const P=POLY[d];let s=7+d;const rnd=()=>{s=(s*16807)%2147483647;return s/2147483647;};
+  while(sand[d].length<2600){const p=[rnd()*6-3,rnd()*6-3];if(inPoly(p,P))sand[d].push(p);}}}
+function stepSand(){for(let d=0;d<2;d++){const u=fieldFor(d),mx=(d===0?D.A:D.B).modes[k].mx,P=POLY[d];
+  for(const p of sand[d]){const v=sample(u,p[0],p[1])/mx,a=Math.abs(v);const st=0.006+0.09*a;
+    const nx=p[0]+(Math.random()-.5)*st*2,ny=p[1]+(Math.random()-.5)*st*2;if(inPoly([nx,ny],P)&&Math.abs(sample(u,nx,ny))/mx<a+0.02){p[0]=nx;p[1]=ny;}}}}
+// ---------- sound ----------
+let AC=null;
+function audio(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();}if(AC.state==="suspended")AC.resume();return AC;}
+function play(amps,pan){const ac=audio();if(!ac)return;const sr=ac.sampleRate,dur=3.2,N=Math.floor(sr*dur),buf=ac.createBuffer(1,N,sr),y=buf.getChannelData(0);
+  for(let m=0;m<KM;m++){const a=amps[m];if(Math.abs(a)<1e-4)continue;const f=freq(m);if(f>sr/2.2)continue;const tau=1.6*Math.pow(F0/f,0.9),w=2*Math.PI*f/sr,dec=Math.exp(-1/(tau*sr));
+    let c=Math.cos(w),s=Math.sin(w),re=1,im=0,g=a;for(let i=0;i<N;i++){y[i]+=g*im;const nr=re*c-im*s;im=re*s+im*c;re=nr;g*=dec;}}
+  let mx=0;for(let i=0;i<N;i++){const att=Math.min(1,i/(sr*0.003));y[i]*=att;mx=Math.max(mx,Math.abs(y[i]));}
+  const src=ac.createBufferSource();src.buffer=buf;const gn=ac.createGain();gn.gain.value=0.32/Math.max(mx,1e-9);
+  let node=gn;if(ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=pan;gn.connect(p);node=p;}node.connect(ac.destination);src.connect(gn);src.start();}
+function strike(d,x,y){const dr=d===0?D.A:D.B;const amps=dr.modes.map(m=>sample(m.u,x,y));
+  lastStrike[d]={x,y,t:performance.now(),amps};try{play(amps,d?0.35:-0.35);}catch(e){console.warn(e);}
+  const top=amps.map((a,m)=>[Math.abs(a),m]).sort((a,b)=>b[0]-a[0]).slice(0,3).map(z=>z[1]+1);
+  document.getElementById(d?"capB":"capA").textContent=`敲在 (${x.toFixed(2)}, ${y.toFixed(2)})，最响的三个模态：${top.join("、")}。`;}
+let pure=null;
+function playPure(){const amps=new Array(KM).fill(0).map((_,m)=>Math.pow(F0/freq(m),0.5));pure={t:performance.now(),amps};
+  try{play(amps,-0.35);setTimeout(()=>{try{play(amps,0.35);}catch(e){}},1600);}catch(e){console.warn(e);}
+  lastStrike[0]={x:99,y:99,t:performance.now(),amps};lastStrike[1]={x:99,y:99,t:performance.now()+1600,amps};
+  document.getElementById("capA").textContent="甲：每个频率各响一下……";document.getElementById("capB").textContent="……乙：同一串频率。两段声音逐个采样都相同。";}
+const specC=document.getElementById("spec"),sctx=specC.getContext("2d");
+function drawSpec(){const r=specC.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);const Wd=Math.round(r.width*dpr),Hd=Math.round(r.height*dpr);
+  if(specC.width!==Wd||specC.height!==Hd){specC.width=Wd;specC.height=Hd;}const c=sctx,css=getComputedStyle(document.documentElement);c.clearRect(0,0,Wd,Hd);
+  const fmin=F0*0.85,fmax=freq(KM-1)*1.05,X=f=>40*dpr+(Math.log(f/fmin)/Math.log(fmax/fmin))*(Wd-50*dpr),mid=Hd/2;
+  c.font=`${11*dpr}px Georgia,serif`;c.fillStyle=css.getPropertyValue("--ink2");c.textAlign="left";c.fillText("甲",6*dpr,mid*0.55);c.fillText("乙",6*dpr,mid*1.55);
+  c.strokeStyle=css.getPropertyValue("--rule");c.lineWidth=dpr;c.beginPath();c.moveTo(34*dpr,mid);c.lineTo(Wd,mid);c.stroke();
+  for(let d=0;d<2;d++){const ls=lastStrike[d];let mx=1e-9;if(ls)for(const a of ls.amps)mx=Math.max(mx,Math.abs(a));
+    for(let m=0;m<KM;m++){const x=X(freq(m)),hgt=ls?Math.abs(ls.amps[m])/mx:0;
+      c.strokeStyle=css.getPropertyValue("--rule");c.lineWidth=dpr;c.beginPath();if(d===0){c.moveTo(x,mid-2*dpr);c.lineTo(x,mid-6*dpr);}else{c.moveTo(x,mid+2*dpr);c.lineTo(x,mid+6*dpr);}c.stroke();
+      if(hgt>0){c.strokeStyle=m===k?css.getPropertyValue("--hi"):css.getPropertyValue(d?"--neg":"--pos");c.lineWidth=2.2*dpr;c.beginPath();
+        if(d===0){c.moveTo(x,mid-2*dpr);c.lineTo(x,mid-2*dpr-hgt*(mid-14*dpr));}else{c.moveTo(x,mid+2*dpr);c.lineTo(x,mid+2*dpr+hgt*(mid-14*dpr));}c.stroke();}}}
+  c.fillStyle=css.getPropertyValue("--ink2");c.textAlign="center";for(const f of [150,200,300,400,600,800]){if(f<fmin||f>fmax)continue;c.fillText(f+" Hz",X(f),Hd-2*dpr);}}
+// ---------- loop & events ----------
+function loop(now){const t=(now-tStart)/1000;if(view==="sand"){stepSand();stepSand();stepSand();}
+  const busy=view!=="still"||lastStrike.some(l=>l&&now-l.t<1600&&now-l.t>-1600);if(busy)drawAll(t);requestAnimationFrame(loop);}
+document.getElementById("mode").addEventListener("input",e=>setMode(+e.target.value-1));
+document.querySelectorAll("input[name=view]").forEach(r=>r.addEventListener("change",e=>{view=e.target.value;cache=[null,null];
+  if(view==="sand")resetSand();if(view==="trans")setMode(k);else document.getElementById("capB").textContent="点鼓面任意一处，敲一下。";drawAll(0);}));
+document.getElementById("tiles").addEventListener("change",e=>{showTiles=e.target.checked;drawAll(0);});
+document.getElementById("pureBtn").addEventListener("click",playPure);
+cv.forEach((c,d)=>c.addEventListener("pointerdown",e=>{const r=c.getBoundingClientRect();const x=p2w((e.clientX-r.left)/r.width*PX),y=-p2w((e.clientY-r.top)/r.height*PX);
+  if(d===1){const ti=TILES[1].findIndex(t=>inTri([x,y],tileVerts(t),false));if(view==="trans"&&ti>=0){selectB(ti===selB?-1:ti);}}
+  if(inPoly([x,y],POLY[d]))strike(d,x,y);}));
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"&&e.target.type==="range")return;if(e.key==="ArrowRight")setMode(Math.min(KM-1,k+1));if(e.key==="ArrowLeft")setMode(Math.max(0,k-1));});
+window.addEventListener("resize",()=>{clearTimeout(window._rt);window._rt=setTimeout(resize,120);});
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{LUT=null;buildFano();drawAll(0);});
+setTimeout(init,30);
+</script>
+</body>
+</html>
