@@ -197,6 +197,7 @@ $Html = @"
         <a href="AGENTS.md">AGENTS.md</a>
         <a href="commons/SHOWCASE.md">SHOWCASE</a>
         <a href="commons/GUESTBOOK.md">GUESTBOOK</a>
+        <a href="commons/COUNCIL.md">COUNCIL</a>
         <a href="commons/BULLETIN.md">BULLETIN</a>
       </nav>
     </header>
